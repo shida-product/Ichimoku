@@ -10,6 +10,7 @@ export type ActiveOverlay =
   | { kind: "none" }
   | { kind: "task"; taskId: string }
   | { kind: "category" }
+  | { kind: "taskAdd" }
   | { kind: "eventAdd" }
   | { kind: "event"; eventId: string };
 
@@ -17,6 +18,7 @@ interface OverlayContextValue {
   active: ActiveOverlay;
   openTask: (taskId: string) => void;
   openCategory: () => void;
+  openTaskAdd: () => void;
   openEventAdd: () => void;
   openEvent: (eventId: string) => void;
   close: () => void;
@@ -29,13 +31,14 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
 
   const openTask = useCallback((taskId: string) => setActive({ kind: "task", taskId }), []);
   const openCategory = useCallback(() => setActive({ kind: "category" }), []);
+  const openTaskAdd = useCallback(() => setActive({ kind: "taskAdd" }), []);
   const openEventAdd = useCallback(() => setActive({ kind: "eventAdd" }), []);
   const openEvent = useCallback((eventId: string) => setActive({ kind: "event", eventId }), []);
   const close = useCallback(() => setActive({ kind: "none" }), []);
 
   const value = useMemo<OverlayContextValue>(
-    () => ({ active, openTask, openCategory, openEventAdd, openEvent, close }),
-    [active, openTask, openCategory, openEventAdd, openEvent, close]
+    () => ({ active, openTask, openCategory, openTaskAdd, openEventAdd, openEvent, close }),
+    [active, openTask, openCategory, openTaskAdd, openEventAdd, openEvent, close]
   );
 
   return <OverlayContext.Provider value={value}>{children}</OverlayContext.Provider>;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -8,13 +8,17 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Layout } from "lucide-react";
+import { Layout, Plus } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
+import { useOverlay } from "@/store/OverlayContext";
 import type { Category, Task, TaskStatus } from "@/lib/types";
 import { STATUS_LABEL, STATUS_ORDER } from "@/lib/types";
 import { Lane } from "@/features/board/Lane";
 import { DueChip } from "@/features/board/TaskCard";
 import { parseCellId } from "@/features/board/BoardCell";
+import { Button } from "@/components/ui/button";
+import { AnchoredPopover } from "@/components/overlay/AnchoredPopover";
+import { QuickAddForm } from "@/features/tasks/QuickAddForm";
 
 const UNCAT_KEY = "uncat";
 const UNCAT_COLOR = "#9aa29f"; // cat-mibun
@@ -26,6 +30,7 @@ function catColor(c: Category, index: number): string {
 
 export function Board() {
   const { categories, tasks, moveTask } = useAppData();
+  const { active, openTaskAdd, close } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -42,12 +47,6 @@ export function Board() {
       return next;
     });
 
-  const colorByCategory = useMemo(() => {
-    const m = new Map<string, string>();
-    categories.forEach((c, i) => m.set(c.id, catColor(c, i)));
-    return m;
-  }, [categories]);
-
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
 
   const handleDragEnd = (e: DragEndEvent) => {
@@ -60,11 +59,6 @@ export function Board() {
 
   const uncategorized = tasks.filter((t) => t.categoryId === null);
   const activeTask: Task | undefined = activeId ? tasks.find((t) => t.id === activeId) : undefined;
-  const activeColor = activeTask
-    ? activeTask.categoryId
-      ? (colorByCategory.get(activeTask.categoryId) ?? UNCAT_COLOR)
-      : UNCAT_COLOR
-    : UNCAT_COLOR;
 
   return (
     <section className="flex min-h-0 flex-col rounded-lg border border-border bg-card">
@@ -73,7 +67,19 @@ export function Board() {
           <Layout className="size-4 text-muted-foreground" />
           タスクボード
         </span>
-        <span className="text-[11px] text-ink-3">縦＝カテゴリ ／ 横＝状態（ドラッグで移動）</span>
+        <AnchoredPopover
+          open={active.kind === "taskAdd"}
+          onOpenChange={(o) => (o ? openTaskAdd() : close())}
+          title="タスクを追加（未分類）"
+          trigger={
+            <Button variant="outline" size="sm">
+              <Plus />
+              タスク
+            </Button>
+          }
+        >
+          <QuickAddForm />
+        </AnchoredPopover>
       </div>
 
       {/* 状態見出し（3 列） */}
@@ -112,10 +118,7 @@ export function Board() {
 
           <DragOverlay>
             {activeTask ? (
-              <div
-                className="flex w-full cursor-grabbing flex-col gap-1.5 rounded-md border border-l-[3px] border-input bg-card p-2.5 text-left shadow-lg"
-                style={{ borderLeftColor: activeColor }}
-              >
+              <div className="flex w-full cursor-grabbing flex-col gap-1.5 rounded-md border border-input bg-card p-2.5 text-left shadow-lg">
                 <span className="text-[13px] leading-snug">{activeTask.title}</span>
                 {activeTask.dueDate ? <DueChip dueDate={activeTask.dueDate} /> : null}
               </div>

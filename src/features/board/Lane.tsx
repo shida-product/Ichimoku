@@ -25,7 +25,7 @@ export function Lane({
   muted?: boolean;
 }) {
   return (
-    <div className="border-b border-dashed border-border px-4 py-1.5 last:border-b-0">
+    <div className="border-b-2 border-border px-4 py-1.5 last:border-b-0">
       <button
         type="button"
         onClick={onToggle}
@@ -56,7 +56,7 @@ export function Lane({
                 isEmpty={cards.length === 0}
               >
                 {cards.map((t) => (
-                  <TaskCard key={t.id} task={t} color={color} />
+                  <TaskCard key={t.id} task={t} />
                 ))}
               </BoardCell>
             );

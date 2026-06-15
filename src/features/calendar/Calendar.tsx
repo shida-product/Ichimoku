@@ -1,8 +1,11 @@
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
 import { APP_TODAY, parseDate } from "@/lib/date";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { AnchoredPopover } from "@/components/overlay/AnchoredPopover";
+import { EventAddForm } from "@/features/calendar/EventAddForm";
 
 const WD = ["日", "月", "火", "水", "木", "金", "土"];
 const DAYS_AHEAD = 7;
@@ -25,7 +28,7 @@ function hhmm(iso: string): string {
  */
 export function Calendar() {
   const { events } = useAppData();
-  const { openEvent } = useOverlay();
+  const { active, openEvent, openEventAdd, close } = useOverlay();
 
   const start = parseDate(APP_TODAY);
   const days = Array.from({ length: DAYS_AHEAD }, (_, i) => {
@@ -45,7 +48,19 @@ export function Calendar() {
           <CalendarDays className="size-4 text-muted-foreground" />
           カレンダー
         </span>
-        <span className="text-[11px] text-ink-3">予定専用・直近 {DAYS_AHEAD} 日</span>
+        <AnchoredPopover
+          open={active.kind === "eventAdd"}
+          onOpenChange={(o) => (o ? openEventAdd() : close())}
+          title="予定を追加（今日）"
+          trigger={
+            <Button variant="outline" size="sm">
+              <Plus />
+              予定
+            </Button>
+          }
+        >
+          <EventAddForm />
+        </AnchoredPopover>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-2.5 py-2">

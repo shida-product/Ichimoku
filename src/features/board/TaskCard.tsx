@@ -22,8 +22,8 @@ export function DueChip({ dueDate }: { dueDate: string }) {
   );
 }
 
-/** ボード上のタスクカード（ドラッグ可能・クリックで詳細） */
-export function TaskCard({ task, color }: { task: Task; color: string }) {
+/** ボード上のタスクカード（フラット・ドラッグ可能・クリックで詳細） */
+export function TaskCard({ task }: { task: Task }) {
   const { openTask } = useOverlay();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -33,12 +33,12 @@ export function TaskCard({ task, color }: { task: Task; color: string }) {
   return (
     <button
       ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), borderLeftColor: color }}
+      style={{ transform: CSS.Translate.toString(transform) }}
       {...attributes}
       {...listeners}
       onClick={() => openTask(task.id)}
       className={cn(
-        "flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border border-l-[3px] border-border bg-card p-2.5 text-left transition-colors hover:border-input",
+        "flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border border-border bg-card p-2.5 text-left transition-colors hover:border-input",
         done && "opacity-55",
         isDragging && "opacity-40"
       )}
