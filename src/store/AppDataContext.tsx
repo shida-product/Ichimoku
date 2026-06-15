@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import {
   useMutation,
   useQuery,
@@ -27,6 +27,14 @@ import type { Category, EventItem, Task, TaskLink, TaskStatus } from "@/lib/type
 function nowIso(): string {
   return new Date().toISOString();
 }
+
+/**
+ * 完了タスクの自動アーカイブまでの日数（仕様 §3.1 / §5.1 の N）。
+ * `status = 'done'` かつ `completed_at` がこの日数より前 → `archived_at` を立ててボードから畳む。
+ * 仕様の未確定事項（例: 7日）に対し v1 の既定値として 7 日を採用。
+ */
+const ARCHIVE_AFTER_DAYS = 7;
+const ARCHIVE_AFTER_MS = ARCHIVE_AFTER_DAYS * 24 * 60 * 60 * 1000;
 
 function newId(): string {
   return crypto.randomUUID();
@@ -188,7 +196,12 @@ async function fetchCategories(): Promise<Category[]> {
   return byPosition((data as CategoryRow[]).map(rowToCategory));
 }
 async function fetchTasks(): Promise<Task[]> {
-  const { data, error } = await supabase.from("tasks").select("*").order("position");
+  // アーカイブ済みはボード・締切レーンから除外（仕様 §5.1: archived_at is null）。
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*")
+    .is("archived_at", null)
+    .order("position");
   if (error) throw error;
   return byPosition((data as TaskRow[]).map(rowToTask));
 }
@@ -232,6 +245,8 @@ interface AppDataContextValue {
   addTask: (input: { title: string; categoryId?: string | null }) => string;
   updateTask: (id: string, patch: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+  /** 完了タスクをアーカイブ（ボードから畳む）。自動アーカイブ・手動アーカイブ共通。 */
+  archiveTask: (id: string) => void;
   moveTask: (id: string, categoryId: string | null, status: TaskStatus) => void;
   /** 並べ替え＋セル移動。beforeId の直前に挿入（null なら末尾） */
   reorderTask: (
@@ -315,6 +330,18 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     ...buildOptimistic<Task, string>(qc, tasksKey, (prev, id) => prev.filter((t) => t.id !== id)),
   });
 
+  const archiveTaskMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ archived_at: nowIso() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    // アーカイブ＝ボードから畳む。楽観的にはキャッシュから取り除く（取得時に除外されるため）。
+    ...buildOptimistic<Task, string>(qc, tasksKey, (prev, id) => prev.filter((t) => t.id !== id)),
+  });
+
   const addTask = useCallback<AppDataContextValue["addTask"]>(
     (input) => {
       const ts = nowIso();
@@ -355,6 +382,33 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     },
     [deleteTaskMut]
   );
+
+  const archiveTask = useCallback<AppDataContextValue["archiveTask"]>(
+    (id) => {
+      archiveTaskMut.mutate(id);
+    },
+    [archiveTaskMut]
+  );
+
+  // 自動アーカイブ: 完了から ARCHIVE_AFTER_DAYS 日経過した done タスクを畳む。
+  // 仕様 §5.1「アプリ起動時のフィルタで簡易実装」に倣い、データ取得後（tasks 変化時）に走査する。
+  // 楽観的にキャッシュから除かれるため、同一タスクを多重にアーカイブしない。
+  // mutate は TanStack Query v5 で安定参照のため依存に含めても毎レンダーで再実行されない。
+  const archiveMutate = archiveTaskMut.mutate;
+  useEffect(() => {
+    if (!userId) return;
+    const now = Date.now();
+    for (const t of tasks) {
+      if (
+        t.status === "done" &&
+        t.archivedAt === null &&
+        t.completedAt !== null &&
+        now - new Date(t.completedAt).getTime() >= ARCHIVE_AFTER_MS
+      ) {
+        archiveMutate(t.id);
+      }
+    }
+  }, [tasks, userId, archiveMutate]);
 
   const moveTask = useCallback<AppDataContextValue["moveTask"]>(
     (id, categoryId, status) => {
@@ -583,6 +637,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addTask,
       updateTask,
       deleteTask,
+      archiveTask,
       moveTask,
       reorderTask,
       addCategory,
@@ -600,6 +655,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addTask,
       updateTask,
       deleteTask,
+      archiveTask,
       moveTask,
       reorderTask,
       addCategory,

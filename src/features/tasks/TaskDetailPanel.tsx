@@ -1,4 +1,4 @@
-import { Plus, Trash2, X } from "lucide-react";
+import { Archive, Plus, Trash2, X } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { STATUS_LABEL, STATUS_ORDER, type TaskLink } from "@/lib/types";
 import { PanelShell, fieldClass, useSavedFlash } from "@/features/_shared/panel";
@@ -15,7 +15,7 @@ function fmtDateTime(iso: string): string {
  * 追加も既存編集も同じこのパネルで行う。
  */
 export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: () => void }) {
-  const { tasks, categories, updateTask, deleteTask } = useAppData();
+  const { tasks, categories, updateTask, deleteTask, archiveTask } = useAppData();
   const { saved, flash } = useSavedFlash();
   const task = tasks.find((t) => t.id === taskId);
 
@@ -38,16 +38,31 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
       <span className="text-[11px] text-ink-3">
         作成 {fmtDateTime(task.createdAt)} ・ 更新 {fmtDateTime(task.updatedAt)}
       </span>
-      <button
-        type="button"
-        onClick={() => {
-          deleteTask(task.id);
-          onClose();
-        }}
-        className="inline-flex items-center gap-1 text-[13px] text-crit transition-colors hover:underline"
-      >
-        <Trash2 className="size-3.5" /> 削除
-      </button>
+      <div className="flex items-center gap-3">
+        {/* 完了タスクは手動アーカイブ可（自動アーカイブは完了から7日後） */}
+        {task.status === "done" ? (
+          <button
+            type="button"
+            onClick={() => {
+              archiveTask(task.id);
+              onClose();
+            }}
+            className="inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground hover:underline"
+          >
+            <Archive className="size-3.5" /> アーカイブ
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            deleteTask(task.id);
+            onClose();
+          }}
+          className="inline-flex items-center gap-1 text-[13px] text-crit transition-colors hover:underline"
+        >
+          <Trash2 className="size-3.5" /> 削除
+        </button>
+      </div>
     </div>
   );
 
