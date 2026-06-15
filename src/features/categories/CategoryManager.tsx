@@ -1,18 +1,14 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
-import { useOverlay } from "@/store/OverlayContext";
-
-const fieldClass =
-  "w-full rounded-md border border-input bg-card px-2.5 py-2 text-[13px] outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/25 placeholder:text-ink-3";
+import { PanelShell, fieldClass } from "@/features/_shared/panel";
 
 const CAT_FALLBACK = ["#6b7c93", "#8a6d3b", "#7a5c8e", "#3f7e72", "#9a6b6b", "#6b8a7a"];
 
-/** カテゴリ管理（side-peek の中身）。作成・リネーム・並べ替え・削除。 */
-export function CategoryManager() {
+/** カテゴリ管理（side-peek・共通枠）。作成・リネーム・並べ替え・削除。 */
+export function CategoryManager({ onClose }: { onClose: () => void }) {
   const { categories, tasks, addCategory, renameCategory, deleteCategory, reorderCategory } =
     useAppData();
-  const { close } = useOverlay();
   const [newName, setNewName] = useState("");
 
   const add = () => {
@@ -23,22 +19,16 @@ export function CategoryManager() {
 
   const countOf = (id: string) => tasks.filter((t) => t.categoryId === id).length;
 
-  return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] tracking-[0.04em] text-ink-3">カテゴリ管理</span>
-        <button
-          type="button"
-          aria-label="閉じる"
-          onClick={close}
-          className="text-ink-3 transition-colors hover:text-foreground"
-        >
-          <X className="size-[18px]" />
-        </button>
-      </div>
+  const footer = (
+    <p className="text-[11px] text-ink-3">
+      削除したカテゴリのタスクは「未分類」へ移動します（破棄されません）。
+    </p>
+  );
 
+  return (
+    <PanelShell label="カテゴリ管理" onClose={onClose} footer={footer}>
       {/* 追加 */}
-      <div className="mt-3 flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -46,11 +36,18 @@ export function CategoryManager() {
           placeholder="新しいカテゴリ名"
           className={fieldClass}
         />
-        <Button onClick={add} />
+        <button
+          type="button"
+          onClick={add}
+          aria-label="カテゴリを追加"
+          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/85"
+        >
+          <Plus className="size-4" />
+        </button>
       </div>
 
       {/* 一覧 */}
-      <div className="mt-3 flex flex-1 flex-col gap-1.5 overflow-auto">
+      <div className="flex flex-col gap-1.5">
         {categories.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             カテゴリがありません。上から追加できます。
@@ -101,24 +98,6 @@ export function CategoryManager() {
           ))
         )}
       </div>
-
-      <p className="mt-2 border-t border-border pt-3 text-[11px] text-ink-3">
-        削除したカテゴリのタスクは「未分類」へ移動します（破棄されません）。
-      </p>
-    </div>
-  );
-}
-
-/** 追加ボタン（＋アイコンのみ） */
-function Button({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="カテゴリを追加"
-      className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/85"
-    >
-      <Plus className="size-4" />
-    </button>
+    </PanelShell>
   );
 }

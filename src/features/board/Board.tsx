@@ -17,8 +17,6 @@ import { Lane } from "@/features/board/Lane";
 import { DueChip } from "@/features/board/TaskCard";
 import { parseCellId } from "@/features/board/BoardCell";
 import { Button } from "@/components/ui/button";
-import { AnchoredPopover } from "@/components/overlay/AnchoredPopover";
-import { QuickAddForm } from "@/features/tasks/QuickAddForm";
 
 const UNCAT_KEY = "uncat";
 const UNCAT_COLOR = "#9aa29f"; // cat-mibun
@@ -29,8 +27,8 @@ function catColor(c: Category, index: number): string {
 }
 
 export function Board() {
-  const { categories, tasks, moveTask } = useAppData();
-  const { active, openTaskAdd, close } = useOverlay();
+  const { categories, tasks, moveTask, addTask } = useAppData();
+  const { openTaskDraft } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -67,19 +65,17 @@ export function Board() {
           <Layout className="size-4 text-muted-foreground" />
           タスクボード
         </span>
-        <AnchoredPopover
-          open={active.kind === "taskAdd"}
-          onOpenChange={(o) => (o ? openTaskAdd() : close())}
-          title="タスクを追加（未分類）"
-          trigger={
-            <Button variant="outline" size="sm">
-              <Plus />
-              タスク
-            </Button>
-          }
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const id = addTask({ title: "" });
+            openTaskDraft(id);
+          }}
         >
-          <QuickAddForm />
-        </AnchoredPopover>
+          <Plus />
+          タスク
+        </Button>
       </div>
 
       {/* 状態見出し（3 列） */}

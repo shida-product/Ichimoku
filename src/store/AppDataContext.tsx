@@ -18,8 +18,8 @@ interface AppDataContextValue {
   tasks: Task[];
   events: EventItem[];
 
-  // タスク
-  addTask: (input: { title: string; categoryId?: string | null }) => void;
+  // タスク（addTask は作成した id を返す＝下書きを即パネルで開くため）
+  addTask: (input: { title: string; categoryId?: string | null }) => string;
   updateTask: (id: string, patch: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   moveTask: (id: string, categoryId: string | null, status: TaskStatus) => void;
@@ -30,8 +30,8 @@ interface AppDataContextValue {
   deleteCategory: (id: string) => void;
   reorderCategory: (id: string, direction: "up" | "down") => void;
 
-  // 予定
-  addEvent: (input: { title: string; startAt: string; endAt: string }) => void;
+  // 予定（addEvent は作成した id を返す）
+  addEvent: (input: { title: string; startAt: string; endAt: string }) => string;
   updateEvent: (id: string, patch: Partial<EventItem>) => void;
   deleteEvent: (id: string) => void;
 }
@@ -115,15 +115,13 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   // ── タスク ──
   const addTask = useCallback<AppDataContextValue["addTask"]>((input) => {
-    const title = input.title.trim();
-    if (!title) return;
     const id = nextId("t");
     const ts = nowIso();
     setTasks((prev) => [
       {
         id,
         categoryId: input.categoryId ?? null,
-        title,
+        title: input.title,
         description: "",
         links: [],
         status: "todo",
@@ -136,6 +134,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       },
       ...prev,
     ]);
+    return id;
   }, []);
 
   const updateTask = useCallback<AppDataContextValue["updateTask"]>((id, patch) => {
@@ -215,6 +214,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         notes: null,
       },
     ]);
+    return id;
   }, []);
 
   const updateEvent = useCallback<AppDataContextValue["updateEvent"]>((id, patch) => {

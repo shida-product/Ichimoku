@@ -4,8 +4,6 @@ import { useOverlay } from "@/store/OverlayContext";
 import { APP_TODAY, parseDate } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { AnchoredPopover } from "@/components/overlay/AnchoredPopover";
-import { EventAddForm } from "@/features/calendar/EventAddForm";
 
 const WD = ["日", "月", "火", "水", "木", "金", "土"];
 const DAYS_AHEAD = 7;
@@ -27,8 +25,8 @@ function hhmm(iso: string): string {
  * ※ Step 11 で週/日グリッド＋DnD、Step 12-13 で Google 連携へ拡張予定。
  */
 export function Calendar() {
-  const { events } = useAppData();
-  const { active, openEvent, openEventAdd, close } = useOverlay();
+  const { events, addEvent } = useAppData();
+  const { openEvent, openEventDraft } = useOverlay();
 
   const start = parseDate(APP_TODAY);
   const days = Array.from({ length: DAYS_AHEAD }, (_, i) => {
@@ -48,19 +46,21 @@ export function Calendar() {
           <CalendarDays className="size-4 text-muted-foreground" />
           カレンダー
         </span>
-        <AnchoredPopover
-          open={active.kind === "eventAdd"}
-          onOpenChange={(o) => (o ? openEventAdd() : close())}
-          title="予定を追加（今日）"
-          trigger={
-            <Button variant="outline" size="sm">
-              <Plus />
-              予定
-            </Button>
-          }
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const id = addEvent({
+              title: "",
+              startAt: `${APP_TODAY}T09:00:00`,
+              endAt: `${APP_TODAY}T10:00:00`,
+            });
+            openEventDraft(id);
+          }}
         >
-          <EventAddForm />
-        </AnchoredPopover>
+          <Plus />
+          予定
+        </Button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-2.5 py-2">
