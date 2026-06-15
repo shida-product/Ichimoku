@@ -27,14 +27,19 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 - UI 改修（要望反映済み）: 追加・編集を**同一の side-peek 詳細パネルに一本化**（＋ボタンは空の下書きを作って同じパネルを開く・空のまま閉じたら破棄）。共通枠は `src/features/_shared/panel.tsx`。タスク追加=ボード見出し／予定追加=カレンダー見出しに配置。カードはフラット（左色廃止・カテゴリ色はレーンのドット）、メモは2行クランプ表示＋「メモ表示」トグル。見出しのみ明朝（`font-display`／Zen Old Mincho はラテンのみ同梱・日本語は OS 明朝へ）。
 - 補足: `src/components/overlay/AnchoredPopover.tsx` は現状未使用（ポップ採用時の再利用部品として温存）。
 
-**次の主眼は Supabase 配線**: `AppDataContext` のミューテータを TanStack Query + Supabase 呼び出しへ差し替える（インターフェースは維持。コンポーネントは原則無改修）。
+**Supabase 配線（データ層）実装済み・実 DB 検証待ち**: `src/store/AppDataContext.tsx` をメモリ内モックから **TanStack Query + Supabase CRUD** へ全面差し替え済み（インターフェース不変＝コンポーネント無改修）。`main.tsx` に `QueryClientProvider` を追加（`QueryClientProvider > AuthProvider > AppDataProvider` の順）。`@tanstack/react-query@5` を依存追加。
+
+- 設計の要: ①`addTask`/`addEvent` は `crypto.randomUUID()` で **クライアント採番**し即 id を返す（DB の `default gen_random_uuid()` は使わず明示挿入）＋楽観的更新でドラフトを即パネル表示。②`owner_id` は認証ユーザーから付与（未認証は保存不可）。③表示順は `position` 昇順。`Lane` は配列順をそのまま描画するため、取得時も楽観更新時も `position` で再ソートしキャッシュと DB を一致させる。
+- 並び順キー: `src/lib/order.ts` の `keyBetween`/`keyAfter`/`keyBefore`（字句的中点による fractional index）。挿入・並べ替えで永続化（旧モックの簡易連番を撤去）→ Next Actions #2 を実質前進。
+- 未検証: このリモート環境に Supabase 認証情報が無く、**実 DB に対する CRUD 動作は未確認**。型チェック・ESLint・`npm run build` は通過済み。ローカル（`.env` 設定＋ログイン）での目視チェックが必要。
+- 留意点: ①プレビュー（未ログイン）モードは mock 撤去によりデータ空表示になる（シェルは出る）。②`events.start_at/end_at` は timestamptz。楽観挿入は naive ローカル文字列、再取得後は tz 付き ISO に変わる。カレンダーの TZ 厳密化は #3 と併せて対応。③`src/lib/date.ts` の `APP_TODAY` は固定基準日のまま（実 today 化は #3 で）。
 
 ## Next Actions
 
 | 優先 | タスク                                                                                                        | 状態 |
 | :--: | ------------------------------------------------------------------------------------------------------------- | :--: |
-|  1   | Supabase 配線: `AppDataContext` を TanStack Query + Supabase CRUD に差し替え（owner_id/RLS 前提・モック撤去） |  ☐   |
-|  2   | fractional index による並び順の永続化（カテゴリ・セル内タスク。現状モックは簡易連番）                         |  ☐   |
+|  1   | Supabase 配線: `AppDataContext` を TanStack Query + Supabase CRUD に差し替え（owner_id/RLS 前提・モック撤去）。**コード実装済み・実 DB 目視チェック待ち** |  ◐   |
+|  2   | fractional index による並び順の永続化（カテゴリ・セル内タスク）。`src/lib/order.ts` 実装済み。残: 実 DB での並べ替え検証＋密集時の桁伸長確認         |  ◐   |
 |  3   | Step 11. カレンダー 週/日グリッド＋DnD移動・リサイズ（現状はアジェンダ表示のみ）                              |  ☐   |
 |  4   | Step 12-13. Google アカウント連携＋双方向同期（`docs/google-calendar-setup.md`）                              |  ☐   |
 |  5   | Step 14. 完了タスクの自動アーカイブ                                                                           |  ☐   |

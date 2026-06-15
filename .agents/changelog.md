@@ -2,6 +2,19 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-15] データ層の Supabase 配線（モック撤去・TanStack Query 導入）
+
+- **判断背景**:
+  - 全機能の目視チェックが済んだメモリ内モック（旧 `AppDataContext`）を、永続化バックエンドである **Supabase + TanStack Query** に差し替える段階（Next Actions #1）に着手。
+  - コンポーネント無改修を最優先とし、`AppDataContextValue` の公開インターフェース（配列＋同期ミューテータ）を完全維持。同期的に id を返す `addTask`/`addEvent` は、楽観的更新と相性の良い **クライアント側 UUID 採番**（`crypto.randomUUID()`）で実現し、DB の `default gen_random_uuid()` は使わず明示挿入する方針に確定。
+  - 表示順は `Lane` が配列順をそのまま描画するため、**取得時・楽観更新時の双方で `position` 昇順に再ソート**してキャッシュと DB の順序を一致させる設計に。並び順は fractional index（`src/lib/order.ts` の字句的中点キー）で永続化し、旧モックの簡易連番を撤去（#2 を実質前進）。
+- **変更点**:
+  - `src/store/AppDataContext.tsx`: メモリ内モックを撤去し、`useQuery`（categories/tasks/events）＋ `useMutation`（CRUD・並べ替え、全て楽観的更新＋onError ロールバック＋onSettled 再取得）に全面置換。snake_case(DB)↔camelCase(ドメイン)マッパーを内包。`owner_id` は認証ユーザーから付与。
+  - `src/main.tsx`: `QueryClientProvider` を追加（`QueryClientProvider > AuthProvider > AppDataProvider` の順、`refetchOnWindowFocus:false`）。
+  - `src/lib/order.ts`: fractional index キー生成（`keyBetween`/`keyAfter`/`keyBefore`）を新規追加。
+  - `package.json`: `@tanstack/react-query@5` を依存追加。
+- **検証状況**: 型チェック・ESLint・`npm run build` 通過。**実 Supabase に対する CRUD 動作は本環境に認証情報が無く未検証**。ローカル（`.env` 設定＋ログイン）での目視チェックが残課題。
+
 ## [2026-06-15] GitHub管理の開始と初期コミットのプッシュ
 
 - **判断背景**:
