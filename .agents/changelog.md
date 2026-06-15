@@ -2,6 +2,19 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-15] 完了タスクの自動アーカイブ（Step 14）
+
+- **判断背景**:
+  - 仕様 §3.1「完了にして一定期間（例: N日）経過したタスクはボードから自動的に畳む」、§5.1「`status='done'` かつ `completed_at < now() - interval 'N days'` を `archived_at` でマーク。v1 はアプリ起動時のフィルタで簡易実装」に沿って実装（Next Actions #5）。
+  - 仕様の Open Question（自動アーカイブ日数 N、例: 7日）に対し、v1 既定値として **N=7** を定数 `ARCHIVE_AFTER_DAYS` で採用（後から変更容易）。
+  - 取得段階で `archived_at is null` に絞ることで、ボード・近日締切レーンの両方から自動的に除外（個別コンポーネント改修なし）。
+  - 7日待たずに動作確認・運用できるよう、完了タスクには詳細パネルから**手動アーカイブ**も用意。
+- **変更点**:
+  - `src/store/AppDataContext.tsx`: `fetchTasks` を `archived_at is null` に限定。`archiveTask`（`archived_at=now` 永続化＋楽観的にキャッシュ除去）を追加・公開。`tasks` 取得後の useEffect で 7日経過 done を自動 sweep（`mutate` は v5 で安定参照のため依存に含めて多重実行を回避）。
+  - `src/features/tasks/TaskDetailPanel.tsx`: 完了タスクに「アーカイブ」操作を追加。
+- **検証状況**: 型チェック・ESLint・`npm run build` 通過。実 DB 検証は未実施。
+- **残課題**: 仕様 §3.1 の「アーカイブ一覧から参照」UI は v1 未実装（アーカイブ後は UI から不可視・DB には残存）。N=7 の最終確定は要相談。
+
 ## [2026-06-15] カレンダーを自作の週/日 時間グリッドへ刷新（Step 11・DnD移動/リサイズ）
 
 - **判断背景**:

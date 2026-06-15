@@ -38,3 +38,11 @@
 
 - **✅ Solution / Rule:**
   ドラッグ状態は **`useRef` を真実の値**とし、ハンドラ内は `dragRef.current` を読む。描画用に `useState` も併置し、`setDrag(next){ dragRef.current = next; setState(next); }` で両方を更新する。計算は開始時の原点（`origStartMin` 等）＋ポインタ差分から導出すると、中間 state が多少古くても結果が安定する。カラム外までの追従は `el.setPointerCapture(e.pointerId)`、終了時に `releasePointerCapture`。ドラッグ対象には `touch-none` を当ててスクロールとの競合を防ぐ。
+
+### 2026-06-15 [React][TanStack Query] render 中に ref.current を書かない／v5 の mutate は安定参照
+
+- **❌ Anti-pattern:**
+  「effect の依存を増やしたくない」と、レンダリング中に `someRef.current = fn` を代入して最新値を保持しようとする。eslint `react-hooks/refs` が「Cannot update ref during render」でエラーになり、再レンダリングが期待通り走らない原因にもなる。
+
+- **✅ Solution / Rule:**
+  TanStack Query v5 の `mutation.mutate` / `mutateAsync` は**安定参照**。ローカル変数に取り出して（`const m = mut.mutate;`）effect の依存配列に素直に含めれば、毎レンダー再実行されず lint も通る。ref を使うなら更新は effect 内で行い、render 中には書かない。

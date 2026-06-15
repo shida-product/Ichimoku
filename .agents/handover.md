@@ -42,6 +42,12 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 - 未検証: ヘッドレス環境のためブラウザ実機でのドラッグ/リサイズ/作成の目視は未実施。型チェック・ESLint・`npm run build` は通過。狭い右カラム（約440px）での週7列の見やすさは要目視。
 - 留意点: TZ は当面ローカル時刻で統一（書き戻しは naive ローカル ISO）。終日予定は日見出し下の帯に最小表示（編集UIでの終日トグルは未実装）。
 
+**完了タスクの自動アーカイブ（#5）実装済み・検証待ち**: `fetchTasks` を `archived_at is null` に絞り、ボード・締切レーンから自動除外。`AppDataContext` に `archiveTask`（`archived_at=now` 永続化＋楽観的にキャッシュ除去）を追加し公開。`ARCHIVE_AFTER_DAYS=7`（仕様未確定 N の既定値）。
+
+- 自動 sweep: `tasks` 取得後の useEffect で「`done` かつ `completedAt` が7日以上前」を `archiveTask` でマーク（楽観除去で多重実行防止。`mutate` は v5 で安定参照）。
+- 手動: `TaskDetailPanel` の done タスクに「アーカイブ」操作を追加（7日待たずローカル検証可能）。
+- 残: 実 DB での検証、および仕様 §3.1 の「アーカイブ一覧から参照」UI（v1 では未実装＝アーカイブ後は UI から見えなくなる。DB には残る）。N=7 の最終確定も要相談（仕様 Open Question）。
+
 ## Next Actions
 
 | 優先 | タスク                                                                                                        | 状態 |
@@ -50,7 +56,7 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 |  2   | fractional index による並び順の永続化（カテゴリ・セル内タスク）。`src/lib/order.ts` 実装済み。残: 実 DB での並べ替え検証＋密集時の桁伸長確認         |  ◐   |
 |  3   | Step 11. カレンダー 週/日グリッド＋DnD移動・リサイズ。**実装済み（TimeGrid）・実機目視チェック待ち**         |  ◐   |
 |  4   | Step 12-13. Google アカウント連携＋双方向同期（`docs/google-calendar-setup.md`）                              |  ☐   |
-|  5   | Step 14. 完了タスクの自動アーカイブ                                                                           |  ☐   |
+|  5   | Step 14. 完了タスクの自動アーカイブ。**実装済み・検証待ち**（自動=完了7日後 sweep／手動=詳細パネル）。残: 実 DB 検証＋アーカイブ一覧 UI（参照） |  ◐   |
 |  6   | Step 16. Cloudflare Pages デプロイ                                                                            |  ☐   |
 
 凡例: ☐ 未着手 / ◐ 進行中 / ✅ 完了
