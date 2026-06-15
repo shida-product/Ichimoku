@@ -8,7 +8,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Layout, Plus } from "lucide-react";
+import { Layout, Plus, StickyNote } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
 import type { Category, Task, TaskStatus } from "@/lib/types";
@@ -31,6 +31,7 @@ export function Board() {
   const { openTaskDraft } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [showMemo, setShowMemo] = useState(true);
 
   const sensors = useSensors(
     // 5px 動かすまではドラッグ開始しない＝カードのクリック（詳細を開く）と両立
@@ -65,17 +66,29 @@ export function Board() {
           <Layout className="size-4 text-muted-foreground" />
           タスクボード
         </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const id = addTask({ title: "" });
-            openTaskDraft(id);
-          }}
-        >
-          <Plus />
-          タスク
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={showMemo ? "secondary" : "outline"}
+            size="sm"
+            aria-pressed={showMemo}
+            onClick={() => setShowMemo((v) => !v)}
+            title="カード上のメモ表示を切り替え"
+          >
+            <StickyNote />
+            メモ
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const id = addTask({ title: "" });
+              openTaskDraft(id);
+            }}
+          >
+            <Plus />
+            タスク
+          </Button>
+        </div>
       </div>
 
       {/* 状態見出し（3 列） */}
@@ -97,6 +110,7 @@ export function Board() {
             tasks={uncategorized}
             collapsed={collapsed.has(UNCAT_KEY)}
             onToggle={() => toggle(UNCAT_KEY)}
+            showMemo={showMemo}
             muted
           />
 
@@ -109,6 +123,7 @@ export function Board() {
               tasks={tasks.filter((t) => t.categoryId === c.id)}
               collapsed={collapsed.has(c.id)}
               onToggle={() => toggle(c.id)}
+              showMemo={showMemo}
             />
           ))}
 

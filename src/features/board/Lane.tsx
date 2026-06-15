@@ -13,6 +13,7 @@ export function Lane({
   tasks,
   collapsed,
   onToggle,
+  showMemo,
   muted,
 }: {
   categoryKey: string;
@@ -21,6 +22,7 @@ export function Lane({
   tasks: Task[];
   collapsed: boolean;
   onToggle: () => void;
+  showMemo: boolean;
   /** 未分類レーン用の控えめな見た目 */
   muted?: boolean;
 }) {
@@ -56,7 +58,7 @@ export function Lane({
                 isEmpty={cards.length === 0}
               >
                 {cards.map((t) => (
-                  <TaskCard key={t.id} task={t} />
+                  <TaskCard key={t.id} task={t} showMemo={showMemo} />
                 ))}
               </BoardCell>
             );

@@ -23,12 +23,13 @@ export function DueChip({ dueDate }: { dueDate: string }) {
 }
 
 /** ボード上のタスクカード（フラット・ドラッグ可能・クリックで詳細） */
-export function TaskCard({ task }: { task: Task }) {
+export function TaskCard({ task, showMemo }: { task: Task; showMemo: boolean }) {
   const { openTask } = useOverlay();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
   const done = task.status === "done";
+  const memo = task.description.trim();
 
   return (
     <button
@@ -48,6 +49,11 @@ export function TaskCard({ task }: { task: Task }) {
       >
         {task.title}
       </span>
+      {showMemo && memo ? (
+        <p className="line-clamp-2 text-[11px] leading-snug whitespace-pre-wrap text-muted-foreground">
+          {memo}
+        </p>
+      ) : null}
       {task.dueDate ? <DueChip dueDate={task.dueDate} /> : null}
     </button>
   );
