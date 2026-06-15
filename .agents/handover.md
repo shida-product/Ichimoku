@@ -23,6 +23,8 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 - データ層: `src/store/AppDataContext.tsx`（モック・DB と同じフィールド名）／オーバーレイ一元管理 `src/store/OverlayContext.tsx`（§3.7「常に1枚」）。
 - 機能: タスクボード（dnd-kit で状態×カテゴリD&D・レーン折りたたみ・未分類レーン）／クイック追加（Enter）／タスク詳細 side-peek（自動保存・締切プログレッシブ・リンク複数）／近日締切レーン（緊急度色分け）／カレンダー（アジェンダ＋予定ポップ追加＋予定詳細）／カテゴリ管理 side-peek（追加・リネーム・並べ替え・削除）。
 - プレビュー: DEV かつ Supabase 未設定 or `VITE_PREVIEW_MOCK=true` でログイン無しにシェル表示（本番無効）。`.env.example` 参照。
+- UI 改修（要望反映済み）: 追加・編集を**同一の side-peek 詳細パネルに一本化**（＋ボタンは空の下書きを作って同じパネルを開く・空のまま閉じたら破棄）。共通枠は `src/features/_shared/panel.tsx`。タスク追加=ボード見出し／予定追加=カレンダー見出しに配置。カードはフラット（左色廃止・カテゴリ色はレーンのドット）、メモは2行クランプ表示＋「メモ表示」トグル。見出しのみ明朝（`font-display`／Zen Old Mincho はラテンのみ同梱・日本語は OS 明朝へ）。
+- 補足: `src/components/overlay/AnchoredPopover.tsx` は現状未使用（ポップ採用時の再利用部品として温存）。
 
 **次の主眼は Supabase 配線**: `AppDataContext` のミューテータを TanStack Query + Supabase 呼び出しへ差し替える（インターフェースは維持。コンポーネントは原則無改修）。
 
