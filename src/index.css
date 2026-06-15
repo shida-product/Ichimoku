@@ -4,11 +4,12 @@
 /*
   Ichimoku デザイントークン（単一の正本）
   ------------------------------------------------------------------
-  ・配色は prototype-overlay.html（操作モデルの正本）に準拠したライト/緑。
+  ・配色は「案B 温かみ（Warm Editorial / 紙）」に準拠。クリーム地・テラコッタ・
+    暖色インク。design-explorations/B-warm.html が見た目の出発点。
   ・全コンポーネントはここで定義したセマンティックトークンのみを使う。
     生 16 進値をコンポーネントに直書きしない（統一性の担保）。
   ・shadcn/ui のセマンティック名（background/foreground/primary…）に
-    プロトタイプの色を割り当て、shadcn 製と自作の双方を一本化する。
+    案B の色を割り当て、shadcn 製と自作の双方を一本化する。
   詳細な使い分けは docs/design.md を参照。
 */
 
@@ -16,47 +17,51 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.7rem; /* ≒ 11px。カード等の基準角丸 */
+  --radius: 0.5rem; /* 8px。案B のエディトリアルな浅い角丸 */
 
-  /* 面 */
-  --background: #eef1f0; /* アプリ地（page） */
-  --foreground: #1c2826; /* 既定の文字（ink） */
-  --card: #ffffff; /* パネル/カード面（surface） */
-  --card-foreground: #1c2826;
-  --popover: #ffffff;
-  --popover-foreground: #1c2826;
+  /* 面（紙の質感：クリーム） */
+  --background: #f3eee3; /* アプリ地（page） */
+  --foreground: #33302a; /* 既定の文字（暖色インク） */
+  --card: #fbf8f1; /* パネル/カード面（surface） */
+  --card-foreground: #33302a;
+  --popover: #fbf8f1;
+  --popover-foreground: #33302a;
 
-  /* アクセント（深緑） */
-  --primary: #2f6f62;
+  /* アクセント（テラコッタ） */
+  --primary: #b2542f;
   --primary-foreground: #ffffff;
-  --accent: #e4efeb; /* アクセントの淡色（hover 地など） */
-  --accent-foreground: #2f6f62;
+  --accent: #f3e3d8; /* アクセントの淡色（hover 地など） */
+  --accent-foreground: #b2542f;
 
   /* 副次面 */
-  --secondary: #f5f7f6; /* くぼみ面（sunk） */
-  --secondary-foreground: #1c2826;
-  --muted: #f5f7f6;
-  --muted-foreground: #5c6a66; /* 副文字（ink2） */
+  --secondary: #efe9db; /* くぼみ面（sunk） */
+  --secondary-foreground: #33302a;
+  --muted: #efe9db;
+  --muted-foreground: #6f685c; /* 副文字（ink2） */
 
   /* 破壊的/緊急（締切：3日以内） */
-  --destructive: #c2410c;
+  --destructive: #a8341f;
   --destructive-foreground: #ffffff;
 
   /* 線 */
-  --border: #e0e6e3; /* 標準の線（line） */
-  --input: #cdd6d2; /* 入力枠・強めの線（line2） */
-  --ring: #2f6f62; /* フォーカスリング */
+  --border: #e3dccb; /* 標準の線（line） */
+  --input: #d6cdb8; /* 入力枠・強めの線（line2） */
+  --ring: #b2542f; /* フォーカスリング */
 
   /* ドメイン拡張トークン */
-  --ink-3: #8c9794; /* 最も淡い補助文字（プレースホルダ等） */
-  --crit: #c2410c; /* 締切 3日以内＝赤 */
-  --crit-soft: #fbeae1;
-  --warn: #b45309; /* 締切 7日以内＝橙 */
-  --warn-soft: #f7eedd;
+  --ink-3: #a39a89; /* 最も淡い補助文字（プレースホルダ等） */
+  --crit: #a8341f; /* 締切 3日以内＝赤 */
+  --crit-soft: #f4ddd4;
+  --warn: #98701f; /* 締切 7日以内＝橙 */
+  --warn-soft: #f1e7cf;
   --cat-jimu: #6b7c93; /* カテゴリ標準色：事務 */
   --cat-keiei: #8a6d3b; /* 経営 */
   --cat-saiyo: #7a5c8e; /* 採用 */
   --cat-mibun: #9aa29f; /* 未分類 */
+
+  /* カードの影（暖色インク基調。コンポーネントは token 経由で参照） */
+  --shadow-card: 0 1px 2px rgba(51, 48, 42, 0.06);
+  --shadow-card-hover: 0 4px 12px rgba(51, 48, 42, 0.11);
 
   /* 書体（外部フォント取得に依存しない堅牢なフォールバック） */
   --font-sans:

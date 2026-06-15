@@ -20,6 +20,7 @@
 ## Current Focus
 
 Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm run dev` だけで全機能を目視チェックできる状態。
+
 - データ層: `src/store/AppDataContext.tsx`（モック・DB と同じフィールド名）／オーバーレイ一元管理 `src/store/OverlayContext.tsx`（§3.7「常に1枚」）。
 - 機能: タスクボード（dnd-kit で状態×カテゴリD&D・レーン折りたたみ・未分類レーン）／クイック追加（Enter）／タスク詳細 side-peek（自動保存・締切プログレッシブ・リンク複数）／近日締切レーン（緊急度色分け）／カレンダー（アジェンダ＋予定ポップ追加＋予定詳細）／カテゴリ管理 side-peek（追加・リネーム・並べ替え・削除）。
 - プレビュー: DEV かつ Supabase 未設定 or `VITE_PREVIEW_MOCK=true` でログイン無しにシェル表示（本番無効）。`.env.example` 参照。
@@ -30,14 +31,14 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 
 ## Next Actions
 
-| 優先 | タスク | 状態 |
-|:---:|---|:---:|
-| 1 | Supabase 配線: `AppDataContext` を TanStack Query + Supabase CRUD に差し替え（owner_id/RLS 前提・モック撤去） | ☐ |
-| 2 | fractional index による並び順の永続化（カテゴリ・セル内タスク。現状モックは簡易連番） | ☐ |
-| 3 | Step 11. カレンダー 週/日グリッド＋DnD移動・リサイズ（現状はアジェンダ表示のみ） | ☐ |
-| 4 | Step 12-13. Google アカウント連携＋双方向同期（`docs/google-calendar-setup.md`） | ☐ |
-| 5 | Step 14. 完了タスクの自動アーカイブ | ☐ |
-| 6 | Step 16. Cloudflare Pages デプロイ | ☐ |
+| 優先 | タスク                                                                                                        | 状態 |
+| :--: | ------------------------------------------------------------------------------------------------------------- | :--: |
+|  1   | Supabase 配線: `AppDataContext` を TanStack Query + Supabase CRUD に差し替え（owner_id/RLS 前提・モック撤去） |  ☐   |
+|  2   | fractional index による並び順の永続化（カテゴリ・セル内タスク。現状モックは簡易連番）                         |  ☐   |
+|  3   | Step 11. カレンダー 週/日グリッド＋DnD移動・リサイズ（現状はアジェンダ表示のみ）                              |  ☐   |
+|  4   | Step 12-13. Google アカウント連携＋双方向同期（`docs/google-calendar-setup.md`）                              |  ☐   |
+|  5   | Step 14. 完了タスクの自動アーカイブ                                                                           |  ☐   |
+|  6   | Step 16. Cloudflare Pages デプロイ                                                                            |  ☐   |
 
 凡例: ☐ 未着手 / ◐ 進行中 / ✅ 完了
 
@@ -51,7 +52,7 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 
 - **仕様の正本**: `task-board-spec-v1.md` (v1.3 技術確定版)
 - **操作モデルの正**: `prototype-overlay.html`
-- **デザイン正本**: 配色・余白・角丸の実体は `src/index.css`（ライト/緑・prototype 準拠の統一トークン）。使い方は `docs/design.md`。**コンポーネントに生の 16 進値や `zinc-*` 等を直書きせず、必ずセマンティックトークン経由**。中央モーダル封印・保存ボタン禁止（自動保存）・オーバーレイは常に 1 枚。
+- **デザイン正本**: 配色・余白・角丸の実体は `src/index.css`（**案B「温かみ」＝クリーム地/テラコッタ準拠**の統一トークン。角丸 0.5rem、タスクカードは `--shadow-card` で軽い影＋左色ストライプなしのフラット）。比較検討した 3 案は `design-explorations/`（採用＝B-warm.html）。使い方は `docs/design.md`。**コンポーネントに生の 16 進値や `zinc-*` 等を直書きせず、必ずセマンティックトークン経由**。中央モーダル封印・保存ボタン禁止（自動保存）・オーバーレイは常に 1 枚。
 - **技術スタック**: Vite 8 + React 19 + TypeScript + Tailwind CSS v4（Viteプラグイン `@tailwindcss/vite` 方式）
 - **認証/セキュリティ**: Supabase Auth ＋ Postgres RLSポリシー (`using (auth.uid() = owner_id)`) による個人専用の隔離（新規ユーザー登録で自動適用）。
 - **カレンダー方式**: 自作カレンダー UI を正とし、そこに **Google Calendar API（双方向・読み書き / scope `calendar.events`）** で取得した予定をマージする。iframe 埋め込みは却下。OAuth は既存 Supabase Auth に Google プロバイダを相乗り（ID/シークレットは Supabase 管理画面で保持、コード/.env に置かない）。設定手順は `docs/google-calendar-setup.md`。利用料無料・テストユーザー枠は審査不要。実装は自作カレンダー UI の器が立ってから。
