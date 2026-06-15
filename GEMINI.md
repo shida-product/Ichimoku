@@ -24,9 +24,9 @@ Antigravity IDE および Gemini で作業する場合の入口。
 
 ## ツール別 skills の場所
 
-| ツール | skills |
-|---|---|
-| Antigravity | `.agent/skills/` |
+| ツール             | skills            |
+| ------------------ | ----------------- |
+| Antigravity        | `.agent/skills/`  |
 | 手順の中身（正本） | `.agents/skills/` |
 
 索引: [.agents/ADAPTERS.md](.agents/ADAPTERS.md)
