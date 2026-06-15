@@ -1,16 +1,226 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
-import type { Category, EventItem, Task, TaskStatus } from "@/lib/types";
+import { createContext, useCallback, useContext, useMemo } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/features/auth/AuthContext";
+import { keyAfter, keyBefore, keyBetween } from "@/lib/order";
+import type { Category, EventItem, Task, TaskLink, TaskStatus } from "@/lib/types";
 
 /**
- * AppDataContext — アプリの全データソース（現段階はメモリ内モック）。
+ * AppDataContext — アプリの全データソース（Supabase + TanStack Query）。
  *
- * 目的: Supabase 配線前に全機能を目視チェックできるようにする。
- * 後で TanStack Query + Supabase に差し替える際も、この Context の
- * インターフェース（配列＋ミューテータ）を保てばコンポーネントは無改修で済む。
+ * 設計の要:
+ * - 公開インターフェース（配列＋同期ミューテータ）はモック実装時から不変。
+ *   コンポーネントは無改修で動く。
+ * - 永続化は Supabase。RLS（owner_id = auth.uid()）で自分のデータだけが見える。
+ * - 追加系（addTask / addEvent）は id を **クライアントで生成**して即座に返す。
+ *   楽観的更新でドラフトをその場で開けるようにするため（DB の default gen_random_uuid()
+ *   は使わず、こちらで採番した UUID を明示的に挿入する）。
+ * - 表示順は `position`（fractional index）昇順。`Lane` 等は配列順をそのまま描画するため、
+ *   取得時も楽観的更新時も position で並べ替えてキャッシュと DB の順序を一致させる。
  */
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function newId(): string {
+  return crypto.randomUUID();
+}
+
+// ── 並べ替え用ヘルパー ──
+function byPosition<T extends { position: string }>(arr: T[]): T[] {
+  return [...arr].sort((a, b) => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0));
+}
+
+function byStartAt(arr: EventItem[]): EventItem[] {
+  return [...arr].sort((a, b) => (a.startAt < b.startAt ? -1 : a.startAt > b.startAt ? 1 : 0));
+}
+
+// ── DB 行（snake_case）→ ドメイン型（camelCase）マッピング ──
+interface CategoryRow {
+  id: string;
+  name: string;
+  position: string;
+  color: string | null;
+}
+interface TaskRow {
+  id: string;
+  category_id: string | null;
+  title: string;
+  description: string | null;
+  links: TaskLink[] | null;
+  status: TaskStatus;
+  position: string;
+  due_date: string | null;
+  completed_at: string | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+interface EventRow {
+  id: string;
+  title: string;
+  start_at: string;
+  end_at: string;
+  all_day: boolean;
+  location: string | null;
+  notes: string | null;
+}
+
+function rowToCategory(r: CategoryRow): Category {
+  return { id: r.id, name: r.name, position: r.position, color: r.color };
+}
+function rowToTask(r: TaskRow): Task {
+  return {
+    id: r.id,
+    categoryId: r.category_id,
+    title: r.title,
+    description: r.description ?? "",
+    links: r.links ?? [],
+    status: r.status,
+    position: r.position,
+    dueDate: r.due_date,
+    completedAt: r.completed_at,
+    archivedAt: r.archived_at,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+function rowToEvent(r: EventRow): EventItem {
+  return {
+    id: r.id,
+    title: r.title,
+    startAt: r.start_at,
+    endAt: r.end_at,
+    allDay: r.all_day,
+    location: r.location,
+    notes: r.notes,
+  };
+}
+
+// ── ドメイン型 → DB 行（挿入・更新用） ──
+function taskToInsertRow(t: Task, ownerId: string): Record<string, unknown> {
+  return {
+    id: t.id,
+    owner_id: ownerId,
+    category_id: t.categoryId,
+    title: t.title,
+    description: t.description,
+    links: t.links,
+    status: t.status,
+    position: t.position,
+    due_date: t.dueDate,
+    completed_at: t.completedAt,
+    archived_at: t.archivedAt,
+  };
+}
+
+/** updated_at は DB トリガーで自動更新するため送らない。 */
+function taskPatchToRow(patch: Partial<Task>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  if (patch.categoryId !== undefined) row.category_id = patch.categoryId;
+  if (patch.title !== undefined) row.title = patch.title;
+  if (patch.description !== undefined) row.description = patch.description;
+  if (patch.links !== undefined) row.links = patch.links;
+  if (patch.status !== undefined) row.status = patch.status;
+  if (patch.position !== undefined) row.position = patch.position;
+  if (patch.dueDate !== undefined) row.due_date = patch.dueDate;
+  if (patch.completedAt !== undefined) row.completed_at = patch.completedAt;
+  if (patch.archivedAt !== undefined) row.archived_at = patch.archivedAt;
+  return row;
+}
+
+function categoryPatchToRow(patch: Partial<Category>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  if (patch.name !== undefined) row.name = patch.name;
+  if (patch.position !== undefined) row.position = patch.position;
+  if (patch.color !== undefined) row.color = patch.color;
+  return row;
+}
+
+function eventToInsertRow(e: EventItem, ownerId: string): Record<string, unknown> {
+  return {
+    id: e.id,
+    owner_id: ownerId,
+    title: e.title,
+    start_at: e.startAt,
+    end_at: e.endAt,
+    all_day: e.allDay,
+    location: e.location,
+    notes: e.notes,
+  };
+}
+
+function eventPatchToRow(patch: Partial<EventItem>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  if (patch.title !== undefined) row.title = patch.title;
+  if (patch.startAt !== undefined) row.start_at = patch.startAt;
+  if (patch.endAt !== undefined) row.end_at = patch.endAt;
+  if (patch.allDay !== undefined) row.all_day = patch.allDay;
+  if (patch.location !== undefined) row.location = patch.location;
+  if (patch.notes !== undefined) row.notes = patch.notes;
+  return row;
+}
+
+/**
+ * updateTask 用にパッチを正規化する。
+ * - updatedAt は楽観表示用に現在時刻を入れる（DB 側はトリガー）。
+ * - status が変わるのに completedAt が未指定なら、完了/未完了に応じて補完する。
+ *   呼び出し側が completedAt を明示している場合は尊重する（reorder/move で既存値を保つため）。
+ */
+function normalizeTaskPatch(patch: Partial<Task>): Partial<Task> {
+  const next: Partial<Task> = { ...patch, updatedAt: nowIso() };
+  if (patch.status !== undefined && patch.completedAt === undefined) {
+    next.completedAt = patch.status === "done" ? nowIso() : null;
+  }
+  return next;
+}
+
+// ── クエリ関数（RLS により自分の行だけが返る） ──
+async function fetchCategories(): Promise<Category[]> {
+  const { data, error } = await supabase.from("categories").select("*").order("position");
+  if (error) throw error;
+  return byPosition((data as CategoryRow[]).map(rowToCategory));
+}
+async function fetchTasks(): Promise<Task[]> {
+  const { data, error } = await supabase.from("tasks").select("*").order("position");
+  if (error) throw error;
+  return byPosition((data as TaskRow[]).map(rowToTask));
+}
+async function fetchEvents(): Promise<EventItem[]> {
+  const { data, error } = await supabase.from("events").select("*").order("start_at");
+  if (error) throw error;
+  return byStartAt((data as EventRow[]).map(rowToEvent));
+}
+
+/**
+ * 単一キャッシュ向けの楽観的更新ハンドラ束。
+ * onMutate でキャッシュを先に書き換え、onError でロールバック、onSettled で再取得して整合させる。
+ */
+function buildOptimistic<T, V>(
+  qc: QueryClient,
+  key: readonly unknown[],
+  updater: (prev: T[], vars: V) => T[]
+) {
+  return {
+    onMutate: async (vars: V) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<T[]>(key) ?? [];
+      qc.setQueryData<T[]>(key, updater(prev, vars));
+      return { prev };
+    },
+    onError: (_err: unknown, _vars: V, ctx: { prev: T[] } | undefined) => {
+      if (ctx) qc.setQueryData<T[]>(key, ctx.prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+    },
+  };
 }
 
 interface AppDataContextValue {
@@ -45,219 +255,325 @@ interface AppDataContextValue {
 
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
 
-// ── モック初期データ（基準日 2026-06-15 / src/lib/date.ts APP_TODAY） ──
-const SEED_CATEGORIES: Category[] = [
-  { id: "cat-jimu", name: "事務", position: "a1", color: "#6b7c93" },
-  { id: "cat-keiei", name: "経営", position: "a2", color: "#8a6d3b" },
-  { id: "cat-saiyo", name: "採用", position: "a3", color: "#7a5c8e" },
-];
-
-const SEED_TASKS: Task[] = [
-  task("t1", null, "領収書をまとめる（未分類のサンプル）", "todo", "2026-06-18"),
-  task("t2", "cat-jimu", "レセプト点検（5月分）", "todo", null),
-  task("t3", "cat-jimu", "社会保険料の納付", "todo", "2026-06-17", "口座振替の残高確認", [
-    { title: "年金事務所", url: "https://www.nenkin.go.jp/" },
-  ]),
-  task("t4", "cat-jimu", "請求書の発行（5件）", "doing", null),
-  task("t5", "cat-jimu", "経費精算の締め", "done", null),
-  task("t6", "cat-keiei", "決算準備（資料一式）", "todo", "2026-06-30"),
-  task("t7", "cat-keiei", "月次レポート提出", "doing", "2026-06-20"),
-  task("t8", "cat-keiei", "銀行面談の資料づくり", "doing", null),
-  task("t9", "cat-saiyo", "薬剤師 面接の日程調整", "doing", null),
-  task("t10", "cat-saiyo", "求人票の更新", "todo", null),
-];
-
-const SEED_EVENTS: EventItem[] = [
-  ev("e1", "MR面談（恵比寿）", "2026-06-15T14:00", "2026-06-15T15:00"),
-  ev("e2", "商工会 講演", "2026-06-15T16:00", "2026-06-15T17:30"),
-  ev("e3", "店舗ミーティング", "2026-06-16T10:00", "2026-06-16T11:00"),
-  ev("e4", "税理士 打ち合わせ", "2026-06-18T15:00", "2026-06-18T16:00"),
-  ev("e5", "取引先 会食", "2026-06-19T19:00", "2026-06-19T21:00"),
-];
-
-function task(
-  id: string,
-  categoryId: string | null,
-  title: string,
-  status: TaskStatus,
-  dueDate: string | null,
-  description = "",
-  links: Task["links"] = []
-): Task {
-  const ts = "2026-06-14T09:00:00.000Z";
-  return {
-    id,
-    categoryId,
-    title,
-    description,
-    links,
-    status,
-    position: id,
-    dueDate,
-    completedAt: status === "done" ? ts : null,
-    archivedAt: null,
-    createdAt: ts,
-    updatedAt: ts,
-  };
-}
-
-function ev(id: string, title: string, startAt: string, endAt: string): EventItem {
-  return {
-    id,
-    title,
-    startAt: `${startAt}:00`,
-    endAt: `${endAt}:00`,
-    allDay: false,
-    location: null,
-    notes: null,
-  };
-}
-
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
-  const [categories, setCategories] = useState<Category[]>(SEED_CATEGORIES);
-  const [tasks, setTasks] = useState<Task[]>(SEED_TASKS);
-  const [events, setEvents] = useState<EventItem[]>(SEED_EVENTS);
-  const seq = useRef(1000);
-  const nextId = (prefix: string) => `${prefix}-${++seq.current}`;
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const qc = useQueryClient();
 
-  // ── タスク ──
-  const addTask = useCallback<AppDataContextValue["addTask"]>((input) => {
-    const id = nextId("t");
-    const ts = nowIso();
-    setTasks((prev) => [
-      {
-        id,
+  const categoriesKey = ["categories", userId] as const;
+  const tasksKey = ["tasks", userId] as const;
+  const eventsKey = ["events", userId] as const;
+
+  const { data: categories = [] } = useQuery({
+    queryKey: categoriesKey,
+    queryFn: fetchCategories,
+    enabled: !!userId,
+  });
+  const { data: tasks = [] } = useQuery({
+    queryKey: tasksKey,
+    queryFn: fetchTasks,
+    enabled: !!userId,
+  });
+  const { data: events = [] } = useQuery({
+    queryKey: eventsKey,
+    queryFn: fetchEvents,
+    enabled: !!userId,
+  });
+
+  function requireOwner(): string {
+    if (!userId) throw new Error("未認証のため保存できません");
+    return userId;
+  }
+
+  // ── タスク mutations ──
+  const addTaskMut = useMutation({
+    mutationFn: async (t: Task) => {
+      const { error } = await supabase.from("tasks").insert(taskToInsertRow(t, requireOwner()));
+      if (error) throw error;
+    },
+    ...buildOptimistic<Task, Task>(qc, tasksKey, (prev, t) => byPosition([t, ...prev])),
+  });
+
+  const updateTaskMut = useMutation({
+    mutationFn: async (vars: { id: string; patch: Partial<Task> }) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update(taskPatchToRow(vars.patch))
+        .eq("id", vars.id);
+      if (error) throw error;
+    },
+    ...buildOptimistic<Task, { id: string; patch: Partial<Task> }>(qc, tasksKey, (prev, vars) =>
+      byPosition(prev.map((t) => (t.id === vars.id ? { ...t, ...vars.patch } : t)))
+    ),
+  });
+
+  const deleteTaskMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      if (error) throw error;
+    },
+    ...buildOptimistic<Task, string>(qc, tasksKey, (prev, id) => prev.filter((t) => t.id !== id)),
+  });
+
+  const addTask = useCallback<AppDataContextValue["addTask"]>(
+    (input) => {
+      const ts = nowIso();
+      // 新規タスクはセル先頭に来るよう、対象セル（未分類×未着手）の先頭より前の position を採番。
+      const cell = byPosition(
+        tasks.filter((t) => (t.categoryId ?? null) === (input.categoryId ?? null) && t.status === "todo")
+      );
+      const task: Task = {
+        id: newId(),
         categoryId: input.categoryId ?? null,
         title: input.title,
         description: "",
         links: [],
         status: "todo",
-        position: id,
+        position: keyBefore(cell.length ? cell[0].position : null),
         dueDate: null,
         completedAt: null,
         archivedAt: null,
         createdAt: ts,
         updatedAt: ts,
-      },
-      ...prev,
-    ]);
-    return id;
-  }, []);
+      };
+      addTaskMut.mutate(task);
+      return task.id;
+    },
+    [addTaskMut, tasks]
+  );
 
-  const updateTask = useCallback<AppDataContextValue["updateTask"]>((id, patch) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== id) return t;
-        const next = { ...t, ...patch, updatedAt: nowIso() };
-        // 完了/未完了の completedAt を整合させる
-        if (patch.status && patch.status !== t.status) {
-          next.completedAt = patch.status === "done" ? nowIso() : null;
-        }
-        return next;
-      })
-    );
-  }, []);
+  const updateTask = useCallback<AppDataContextValue["updateTask"]>(
+    (id, patch) => {
+      updateTaskMut.mutate({ id, patch: normalizeTaskPatch(patch) });
+    },
+    [updateTaskMut]
+  );
 
-  const deleteTask = useCallback<AppDataContextValue["deleteTask"]>((id) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  const deleteTask = useCallback<AppDataContextValue["deleteTask"]>(
+    (id) => {
+      deleteTaskMut.mutate(id);
+    },
+    [deleteTaskMut]
+  );
 
-  const moveTask = useCallback<AppDataContextValue["moveTask"]>((id, categoryId, status) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== id) return t;
-        const next = { ...t, categoryId, status, updatedAt: nowIso() };
-        next.completedAt = status === "done" ? (t.completedAt ?? nowIso()) : null;
-        return next;
-      })
-    );
-  }, []);
+  const moveTask = useCallback<AppDataContextValue["moveTask"]>(
+    (id, categoryId, status) => {
+      const current = tasks.find((t) => t.id === id);
+      const completedAt = status === "done" ? (current?.completedAt ?? nowIso()) : null;
+      updateTask(id, { categoryId, status, completedAt });
+    },
+    [tasks, updateTask]
+  );
 
   const reorderTask = useCallback<AppDataContextValue["reorderTask"]>(
     (id, categoryId, status, beforeId) => {
-      setTasks((prev) => {
-        const active = prev.find((t) => t.id === id);
-        if (!active) return prev;
-        const updated: Task = {
-          ...active,
-          categoryId,
-          status,
-          updatedAt: nowIso(),
-          completedAt: status === "done" ? (active.completedAt ?? nowIso()) : null,
-        };
-        const rest = prev.filter((t) => t.id !== id);
-        if (beforeId && beforeId !== id) {
-          const idx = rest.findIndex((t) => t.id === beforeId);
-          if (idx >= 0) {
-            rest.splice(idx, 0, updated);
-            return rest;
-          }
+      // 移動先セル（自分自身を除く）を position 昇順で取り出し、挿入位置の前後から新 position を採番。
+      const cell = byPosition(
+        tasks.filter(
+          (t) => (t.categoryId ?? null) === (categoryId ?? null) && t.status === status && t.id !== id
+        )
+      );
+      let position: string;
+      if (!beforeId) {
+        position = keyAfter(cell.length ? cell[cell.length - 1].position : null);
+      } else {
+        const idx = cell.findIndex((t) => t.id === beforeId);
+        if (idx < 0) {
+          position = keyAfter(cell.length ? cell[cell.length - 1].position : null);
+        } else {
+          const prev = idx > 0 ? cell[idx - 1] : null;
+          position = keyBetween(prev?.position ?? null, cell[idx].position);
         }
-        rest.push(updated);
-        return rest;
-      });
+      }
+      const current = tasks.find((t) => t.id === id);
+      const completedAt = status === "done" ? (current?.completedAt ?? nowIso()) : null;
+      updateTask(id, { categoryId, status, position, completedAt });
     },
-    []
+    [tasks, updateTask]
   );
 
-  // ── カテゴリ ──
-  const addCategory = useCallback<AppDataContextValue["addCategory"]>((name) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const id = nextId("cat");
-    setCategories((prev) => [
-      ...prev,
-      { id, name: trimmed, position: `z${prev.length}`, color: null },
-    ]);
-  }, []);
+  // ── カテゴリ mutations ──
+  const addCategoryMut = useMutation({
+    mutationFn: async (c: Category) => {
+      const { error } = await supabase.from("categories").insert({
+        id: c.id,
+        owner_id: requireOwner(),
+        name: c.name,
+        position: c.position,
+        color: c.color,
+      });
+      if (error) throw error;
+    },
+    ...buildOptimistic<Category, Category>(qc, categoriesKey, (prev, c) => byPosition([...prev, c])),
+  });
 
-  const renameCategory = useCallback<AppDataContextValue["renameCategory"]>((id, name) => {
-    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)));
-  }, []);
+  const updateCategoryMut = useMutation({
+    mutationFn: async (vars: { id: string; patch: Partial<Category> }) => {
+      const { error } = await supabase
+        .from("categories")
+        .update(categoryPatchToRow(vars.patch))
+        .eq("id", vars.id);
+      if (error) throw error;
+    },
+    ...buildOptimistic<Category, { id: string; patch: Partial<Category> }>(
+      qc,
+      categoriesKey,
+      (prev, vars) => byPosition(prev.map((c) => (c.id === vars.id ? { ...c, ...vars.patch } : c)))
+    ),
+  });
 
-  const deleteCategory = useCallback<AppDataContextValue["deleteCategory"]>((id) => {
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-    // 紐づくタスクは未分類へ（DB の on delete set null と同じ挙動）
-    setTasks((prev) => prev.map((t) => (t.categoryId === id ? { ...t, categoryId: null } : t)));
-  }, []);
+  const deleteCategoryMut = useMutation({
+    mutationFn: async (id: string) => {
+      // DB は tasks.category_id を on delete set null で未分類化する。
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+      if (error) throw error;
+    },
+    // categories と tasks の両キャッシュを楽観更新（紐づくタスクを未分類へ）。
+    onMutate: async (id: string) => {
+      await Promise.all([
+        qc.cancelQueries({ queryKey: categoriesKey }),
+        qc.cancelQueries({ queryKey: tasksKey }),
+      ]);
+      const prevCategories = qc.getQueryData<Category[]>(categoriesKey) ?? [];
+      const prevTasks = qc.getQueryData<Task[]>(tasksKey) ?? [];
+      qc.setQueryData<Category[]>(
+        categoriesKey,
+        prevCategories.filter((c) => c.id !== id)
+      );
+      qc.setQueryData<Task[]>(
+        tasksKey,
+        prevTasks.map((t) => (t.categoryId === id ? { ...t, categoryId: null } : t))
+      );
+      return { prevCategories, prevTasks };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx) {
+        qc.setQueryData(categoriesKey, ctx.prevCategories);
+        qc.setQueryData(tasksKey, ctx.prevTasks);
+      }
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: categoriesKey });
+      void qc.invalidateQueries({ queryKey: tasksKey });
+    },
+  });
 
-  const reorderCategory = useCallback<AppDataContextValue["reorderCategory"]>((id, direction) => {
-    setCategories((prev) => {
-      const idx = prev.findIndex((c) => c.id === id);
-      if (idx < 0) return prev;
-      const swapWith = direction === "up" ? idx - 1 : idx + 1;
-      if (swapWith < 0 || swapWith >= prev.length) return prev;
-      const next = [...prev];
-      [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
-      return next.map((c, i) => ({ ...c, position: `a${i}` }));
-    });
-  }, []);
+  const addCategory = useCallback<AppDataContextValue["addCategory"]>(
+    (name) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const sorted = byPosition(categories);
+      const category: Category = {
+        id: newId(),
+        name: trimmed,
+        position: keyAfter(sorted.length ? sorted[sorted.length - 1].position : null),
+        color: null,
+      };
+      addCategoryMut.mutate(category);
+    },
+    [addCategoryMut, categories]
+  );
 
-  // ── 予定 ──
-  const addEvent = useCallback<AppDataContextValue["addEvent"]>((input) => {
-    const id = nextId("e");
-    setEvents((prev) => [
-      ...prev,
-      {
-        id,
+  const renameCategory = useCallback<AppDataContextValue["renameCategory"]>(
+    (id, name) => {
+      updateCategoryMut.mutate({ id, patch: { name } });
+    },
+    [updateCategoryMut]
+  );
+
+  const deleteCategory = useCallback<AppDataContextValue["deleteCategory"]>(
+    (id) => {
+      deleteCategoryMut.mutate(id);
+    },
+    [deleteCategoryMut]
+  );
+
+  const reorderCategory = useCallback<AppDataContextValue["reorderCategory"]>(
+    (id, direction) => {
+      const sorted = byPosition(categories);
+      const idx = sorted.findIndex((c) => c.id === id);
+      if (idx < 0) return;
+      let position: string;
+      if (direction === "up") {
+        if (idx === 0) return;
+        const above = sorted[idx - 1];
+        const aboveAbove = idx - 2 >= 0 ? sorted[idx - 2] : null;
+        position = keyBetween(aboveAbove?.position ?? null, above.position);
+      } else {
+        if (idx === sorted.length - 1) return;
+        const below = sorted[idx + 1];
+        const belowBelow = idx + 2 < sorted.length ? sorted[idx + 2] : null;
+        position = keyBetween(below.position, belowBelow?.position ?? null);
+      }
+      updateCategoryMut.mutate({ id, patch: { position } });
+    },
+    [updateCategoryMut, categories]
+  );
+
+  // ── 予定 mutations ──
+  const addEventMut = useMutation({
+    mutationFn: async (e: EventItem) => {
+      const { error } = await supabase.from("events").insert(eventToInsertRow(e, requireOwner()));
+      if (error) throw error;
+    },
+    ...buildOptimistic<EventItem, EventItem>(qc, eventsKey, (prev, e) => byStartAt([...prev, e])),
+  });
+
+  const updateEventMut = useMutation({
+    mutationFn: async (vars: { id: string; patch: Partial<EventItem> }) => {
+      const { error } = await supabase
+        .from("events")
+        .update(eventPatchToRow(vars.patch))
+        .eq("id", vars.id);
+      if (error) throw error;
+    },
+    ...buildOptimistic<EventItem, { id: string; patch: Partial<EventItem> }>(
+      qc,
+      eventsKey,
+      (prev, vars) => byStartAt(prev.map((e) => (e.id === vars.id ? { ...e, ...vars.patch } : e)))
+    ),
+  });
+
+  const deleteEventMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("events").delete().eq("id", id);
+      if (error) throw error;
+    },
+    ...buildOptimistic<EventItem, string>(qc, eventsKey, (prev, id) =>
+      prev.filter((e) => e.id !== id)
+    ),
+  });
+
+  const addEvent = useCallback<AppDataContextValue["addEvent"]>(
+    (input) => {
+      const event: EventItem = {
+        id: newId(),
         title: input.title,
         startAt: input.startAt,
         endAt: input.endAt,
         allDay: false,
         location: null,
         notes: null,
-      },
-    ]);
-    return id;
-  }, []);
+      };
+      addEventMut.mutate(event);
+      return event.id;
+    },
+    [addEventMut]
+  );
 
-  const updateEvent = useCallback<AppDataContextValue["updateEvent"]>((id, patch) => {
-    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
-  }, []);
+  const updateEvent = useCallback<AppDataContextValue["updateEvent"]>(
+    (id, patch) => {
+      updateEventMut.mutate({ id, patch });
+    },
+    [updateEventMut]
+  );
 
-  const deleteEvent = useCallback<AppDataContextValue["deleteEvent"]>((id) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
-  }, []);
+  const deleteEvent = useCallback<AppDataContextValue["deleteEvent"]>(
+    (id) => {
+      deleteEventMut.mutate(id);
+    },
+    [deleteEventMut]
+  );
 
   const value = useMemo<AppDataContextValue>(
     () => ({
