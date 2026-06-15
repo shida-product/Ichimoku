@@ -30,3 +30,11 @@
 
 - **✅ Solution / Rule:**
   追加系は `crypto.randomUUID()` で **クライアント採番**して即 id を返し、楽観的更新でキャッシュへ即反映、insert は同じ id を明示挿入（DB の `default gen_random_uuid()` は使わない）。これで同期インターフェースを保ったまま永続化できる。`crypto.randomUUID()` はセキュアコンテキスト（https/localhost）が前提。
+
+### 2026-06-15 [React][ポインタ操作] ドラッグ状態は ref を真実の値に（state クロージャは古くなる）
+
+- **❌ Anti-pattern:**
+  自作の時間グリッド等で `onPointerMove`/`onPointerUp` ハンドラが **state の `drag` をクロージャ越しに読む**設計。`pointerdown→pointerup` が高速（実質クリック）だと、`setDrag` の再レンダリングが間に合わず pointerup 側のクロージャが古い `drag=null` を見て、ガードで早期 return → 「クリックしても詳細が開かない／コミットされない」。
+
+- **✅ Solution / Rule:**
+  ドラッグ状態は **`useRef` を真実の値**とし、ハンドラ内は `dragRef.current` を読む。描画用に `useState` も併置し、`setDrag(next){ dragRef.current = next; setState(next); }` で両方を更新する。計算は開始時の原点（`origStartMin` 等）＋ポインタ差分から導出すると、中間 state が多少古くても結果が安定する。カラム外までの追従は `el.setPointerCapture(e.pointerId)`、終了時に `releasePointerCapture`。ドラッグ対象には `touch-none` を当ててスクロールとの競合を防ぐ。
