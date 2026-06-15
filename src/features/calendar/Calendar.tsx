@@ -43,7 +43,7 @@ export function Calendar() {
 
   // ＋予定: 表示中の基準日 9:00–10:00 の下書きを作って詳細パネルを開く
   const addAtAnchor = () => {
-    const base = startOfDay(view === "week" ? parseDate(APP_TODAY) : anchor);
+    const base = startOfDay(anchor);
     const id = addEvent({
       title: "",
       startAt: toLocalIso(dateAtMinutes(base, 9 * 60)),

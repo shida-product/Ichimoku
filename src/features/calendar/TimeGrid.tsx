@@ -289,14 +289,16 @@ export function TimeGrid({
                 {/* 時間イベント */}
                 {perDay[di].map((pe) => {
                   const isDragging = drag?.id === pe.event.id;
-                  // ドラッグ中は他カラムへ移動している可能性があるため、対象カラム以外では非表示
-                  if (isDragging && drag!.dayIndex !== di) return null;
+                  // ドラッグ中の要素は、アンマウントを防ぐため開始時の元カラム(origDayIndex)でのみ描画する
+                  if (isDragging && drag!.origDayIndex !== di) return null;
                   const startMin = isDragging ? drag!.startMin : pe.startMin;
                   const endMin = isDragging ? drag!.endMin : pe.endMin;
                   const top = minToY(startMin);
                   const height = Math.max(minToY(endMin) - top, 16);
                   const widthPct = isDragging ? 100 : 100 / pe.cols;
-                  const leftPct = isDragging ? 0 : (100 / pe.cols) * pe.col;
+                  const leftPct = isDragging
+                    ? (drag!.dayIndex - drag!.origDayIndex) * 100
+                    : (100 / pe.cols) * pe.col;
                   const compact = height < 34;
                   return (
                     <div

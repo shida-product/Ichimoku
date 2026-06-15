@@ -8,6 +8,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/features/auth/AuthContext";
 import { keyAfter, keyBefore, keyBetween } from "@/lib/order";
+import { toLocalIso } from "@/lib/calendar";
 import type { Category, EventItem, Task, TaskLink, TaskStatus } from "@/lib/types";
 
 /**
@@ -103,8 +104,8 @@ function rowToEvent(r: EventRow): EventItem {
   return {
     id: r.id,
     title: r.title,
-    startAt: r.start_at,
-    endAt: r.end_at,
+    startAt: toLocalIso(new Date(r.start_at)),
+    endAt: toLocalIso(new Date(r.end_at)),
     allDay: r.all_day,
     location: r.location,
     notes: r.notes,
@@ -156,8 +157,8 @@ function eventToInsertRow(e: EventItem, ownerId: string): Record<string, unknown
     id: e.id,
     owner_id: ownerId,
     title: e.title,
-    start_at: e.startAt,
-    end_at: e.endAt,
+    start_at: new Date(e.startAt).toISOString(),
+    end_at: new Date(e.endAt).toISOString(),
     all_day: e.allDay,
     location: e.location,
     notes: e.notes,
@@ -167,8 +168,8 @@ function eventToInsertRow(e: EventItem, ownerId: string): Record<string, unknown
 function eventPatchToRow(patch: Partial<EventItem>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (patch.title !== undefined) row.title = patch.title;
-  if (patch.startAt !== undefined) row.start_at = patch.startAt;
-  if (patch.endAt !== undefined) row.end_at = patch.endAt;
+  if (patch.startAt !== undefined) row.start_at = new Date(patch.startAt).toISOString();
+  if (patch.endAt !== undefined) row.end_at = new Date(patch.endAt).toISOString();
   if (patch.allDay !== undefined) row.all_day = patch.allDay;
   if (patch.location !== undefined) row.location = patch.location;
   if (patch.notes !== undefined) row.notes = patch.notes;
