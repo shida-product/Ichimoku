@@ -19,21 +19,27 @@
 
 ## Current Focus
 
-Step 4 完了。**統一デザイントークン（ライト/緑・prototype 準拠）を `src/index.css` に単一の正本として確立**し、shadcn セマンティック名＋ドメイン色（緊急度/カテゴリ）を一本化。1画面固定レイアウト `AppShell` と、オーバーレイ基盤 `SidePeek`（右スライドオーバー）/`AnchoredPopover`（ポップ）を実装。`AuthScreen` も統一トークンへリスタイル済み。使い方は `docs/design.md` に集約。
-次は Step 5（カテゴリ CRUD & 並べ替え）。
+Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm run dev` だけで全機能を目視チェックできる状態。
+- データ層: `src/store/AppDataContext.tsx`（モック・DB と同じフィールド名）／オーバーレイ一元管理 `src/store/OverlayContext.tsx`（§3.7「常に1枚」）。
+- 機能: タスクボード（dnd-kit で状態×カテゴリD&D・レーン折りたたみ・未分類レーン）／クイック追加（Enter）／タスク詳細 side-peek（自動保存・締切プログレッシブ・リンク複数）／近日締切レーン（緊急度色分け）／カレンダー（アジェンダ＋予定ポップ追加＋予定詳細）／カテゴリ管理 side-peek（追加・リネーム・並べ替え・削除）。
+- プレビュー: DEV かつ Supabase 未設定 or `VITE_PREVIEW_MOCK=true` でログイン無しにシェル表示（本番無効）。`.env.example` 参照。
+
+**次の主眼は Supabase 配線**: `AppDataContext` のミューテータを TanStack Query + Supabase 呼び出しへ差し替える（インターフェースは維持。コンポーネントは原則無改修）。
 
 ## Next Actions
 
 | 優先 | タスク | 状態 |
 |:---:|---|:---:|
-| 1 | Step 5. カテゴリ CRUD & 並べ替え（カテゴリ管理 side-peek の中身を実装） | ☐ |
-| 2 | Step 6. タスク CRUD & クイック追加（トップバー入力の永続化） | ☐ |
-| 3 | Step 7. タスクボード (dnd-kit による状態/カテゴリドラッグ) | ☐ |
-| 4 | Step 8. タスク詳細 side-peek (自動保存) | ☐ |
-| 5 | Step 9. 近日締切レーン | ☐ |
-| 6 | Step 10. カレンダー基本描画と予定 CRUD（＋予定ポップの保存） | ☐ |
+| 1 | Supabase 配線: `AppDataContext` を TanStack Query + Supabase CRUD に差し替え（owner_id/RLS 前提・モック撤去） | ☐ |
+| 2 | fractional index による並び順の永続化（カテゴリ・セル内タスク。現状モックは簡易連番） | ☐ |
+| 3 | Step 11. カレンダー 週/日グリッド＋DnD移動・リサイズ（現状はアジェンダ表示のみ） | ☐ |
+| 4 | Step 12-13. Google アカウント連携＋双方向同期（`docs/google-calendar-setup.md`） | ☐ |
+| 5 | Step 14. 完了タスクの自動アーカイブ | ☐ |
+| 6 | Step 16. Cloudflare Pages デプロイ | ☐ |
 
 凡例: ☐ 未着手 / ◐ 進行中 / ✅ 完了
+
+※ モック実装済みの目視チェック観点: D&D で状態/カテゴリ変更 → 締切レーン/カウント反映、締切チェックで日付欄出現、side-peek の自動保存「保存済み✓」、オーバーレイが常に1枚（別を開くと前が閉じる）、Esc/外クリックで閉じる。
 
 ※ 並行タスク（人間）: `docs/google-calendar-setup.md` に沿って Google Cloud プロジェクト作成〜OAuth クライアント発行〜Supabase の Google プロバイダ登録を進める。完了したら AI 側でカレンダー連携コードを実装。
 

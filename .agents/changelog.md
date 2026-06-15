@@ -42,3 +42,23 @@
   - 未使用の `src/App.css` を削除、`index.html` の title/lang を Ichimoku/ja に修正。
   - 品質ゲート: `npm run build`（tsc 型チェック＋vite）成功 / `npm run lint` 0 error（既存 warning 2 件のみ）/ prettier 整形済み。
   - 境界: クイック追加の永続化＝Step 6、カテゴリ管理の中身＝Step 5、＋予定の保存＝Step 10（入口のみ実装）。
+
+## [2026-06-15] Step 5-10 コア機能をモックデータで一括実装（目視チェック可能化）
+
+- **判断背景**:
+  - 「各機能を実装しモックデータで目視チェックを進めたい」という要望に対し、**Supabase 配線を先に行わず、メモリ内モックストアを噛ませて全機能を可視化**する方針を採用。バックエンドの不確実性を切り離し、UX/操作モデルを先に固める。
+  - モックは DB（`supabase/migrations`）と同じフィールド名で設計し、後で `AppDataContext` のミューテータを TanStack Query + Supabase 呼び出しへ差し替えるだけでコンポーネント無改修にできる構造にした。
+  - 目視チェックの障壁（認証ゲート）を外すため、**DEV 専用プレビューモード**（Supabase 未設定 or `VITE_PREVIEW_MOCK=true` でログイン無し表示）を導入。本番ビルドでは常に無効。
+  - ボード D&D は dnd-kit を採用。クリック（詳細）と両立させるため PointerSensor の `activationConstraint.distance=5` で「5px 動かすまでドラッグ開始しない」。
+  - オーバーレイの「常に 1 枚」を `OverlayContext` の単一 union 状態で構造的に保証（どのカードからでも `openTask` 可能・プロップドリル排除）。
+  - `SidePeek` は純粋コンテナへ再整理（ヘッダ/閉じる/保存フラッシュは各パネルが描画）。
+- **変更点**:
+  - データ/状態: `src/store/AppDataContext.tsx`・`src/store/OverlayContext.tsx`、型 `src/lib/types.ts`・日付ユーティリティ `src/lib/date.ts`。
+  - ボード: `src/features/board/`（Board / Lane / BoardCell / TaskCard、dnd-kit による状態×カテゴリ D&D・レーン折りたたみ・未分類レーン）。
+  - タスク: `src/features/tasks/TaskDetailPanel.tsx`（自動保存・締切プログレッシブ・リンク複数・カテゴリ/状態）、クイック追加（トップバー Enter）。
+  - 締切: `src/features/deadlines/DeadlineRail.tsx`（締切順・緊急度色分け・クリックで詳細）。
+  - カレンダー: `src/features/calendar/`（Calendar アジェンダ / EventAddForm ポップ / EventDetailPanel 自動保存）。
+  - カテゴリ: `src/features/categories/CategoryManager.tsx`（追加・リネーム・並べ替え・削除、削除時タスクは未分類へ）。
+  - 依存追加: `@dnd-kit/core` `@dnd-kit/sortable` `@dnd-kit/utilities`。`.env.example` にプレビューフラグを明記。
+  - 品質ゲート: `npm run build` 成功 / `npm run lint` 0 error（HMR warning のみ）/ prettier 整形済み / dev サーバ起動確認。
+  - 既知の境界（次段で対応）: 永続化は未配線（リロードでモックに戻る）／並び順は簡易連番（fractional index 未）／カレンダーは週/日グリッド・DnD 未（アジェンダのみ）／Google 連携・自動アーカイブ未。
