@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  closestCenter,
   DndContext,
   DragOverlay,
   PointerSensor,
@@ -27,11 +28,19 @@ function catColor(c: Category, index: number): string {
 }
 
 export function Board() {
-  const { categories, tasks, moveTask, addTask } = useAppData();
+  const { categories, tasks, reorderTask, addTask } = useAppData();
   const { openTaskDraft } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showMemo, setShowMemo] = useState(true);
+  const [quick, setQuick] = useState("");
+
+  const submitQuick = () => {
+    const title = quick.trim();
+    if (!title) return;
+    addTask({ title });
+    setQuick("");
+  };
 
   const sensors = useSensors(
     // 5px 動かすまではドラッグ開始しない＝カードのクリック（詳細を開く）と両立
@@ -50,10 +59,32 @@ export function Board() {
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
-    if (!e.over) return;
-    const { categoryKey, status } = parseCellId(String(e.over.id));
+    const { active, over } = e;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (activeId === overId) return;
+
+    let categoryKey: string;
+    let status: TaskStatus;
+    let beforeId: string | null;
+
+    if (overId.includes("__")) {
+      // セルそのもの（空セル等）にドロップ → そのセルの末尾へ
+      const parsed = parseCellId(overId);
+      categoryKey = parsed.categoryKey;
+      status = parsed.status as TaskStatus;
+      beforeId = null;
+    } else {
+      // 別カードにドロップ → そのカードと同じセルの、そのカードの直前へ挿入
+      const overTask = tasks.find((t) => t.id === overId);
+      if (!overTask) return;
+      categoryKey = overTask.categoryId ?? UNCAT_KEY;
+      status = overTask.status;
+      beforeId = overId;
+    }
     const categoryId = categoryKey === UNCAT_KEY ? null : categoryKey;
-    moveTask(String(e.active.id), categoryId, status as TaskStatus);
+    reorderTask(activeId, categoryId, status, beforeId);
   };
 
   const uncategorized = tasks.filter((t) => t.categoryId === null);
@@ -91,6 +122,20 @@ export function Board() {
         </div>
       </div>
 
+      {/* パッと追加（常時表示・Enter で未分類/未着手に即タスク化 §3.3.1） */}
+      <div className="border-b border-border px-4 py-2.5">
+        <div className="flex items-center gap-2 rounded-md border border-input bg-card px-2.5 focus-within:border-ring">
+          <Plus className="size-3.5 shrink-0 text-ink-3" />
+          <input
+            value={quick}
+            onChange={(e) => setQuick(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitQuick()}
+            placeholder="タスクをパッと追加（Enter）— 未分類へ"
+            className="flex-1 bg-transparent py-2 text-[13px] outline-none placeholder:text-ink-3"
+          />
+        </div>
+      </div>
+
       {/* 状態見出し（3 列） */}
       <div className="grid grid-cols-3 gap-2.5 px-4 pt-3 pb-1 text-[11px] font-medium tracking-[0.05em] text-muted-foreground">
         {STATUS_ORDER.map((s) => (
@@ -101,7 +146,12 @@ export function Board() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto pb-2">
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
           {/* 未分類レーン（常に先頭・控えめ） */}
           <Lane
             categoryKey={UNCAT_KEY}

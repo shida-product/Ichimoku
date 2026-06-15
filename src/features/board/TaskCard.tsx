@@ -1,4 +1,4 @@
-import { useDraggable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "@/lib/types";
 import { useOverlay } from "@/store/OverlayContext";
@@ -25,7 +25,7 @@ export function DueChip({ dueDate }: { dueDate: string }) {
 /** ボード上のタスクカード（フラット・ドラッグ可能・クリックで詳細） */
 export function TaskCard({ task, showMemo }: { task: Task; showMemo: boolean }) {
   const { openTask } = useOverlay();
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
   const done = task.status === "done";
@@ -34,7 +34,7 @@ export function TaskCard({ task, showMemo }: { task: Task; showMemo: boolean }) 
   return (
     <button
       ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform) }}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       {...listeners}
       onClick={() => openTask(task.id)}

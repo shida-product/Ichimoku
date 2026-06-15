@@ -23,6 +23,13 @@ interface AppDataContextValue {
   updateTask: (id: string, patch: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   moveTask: (id: string, categoryId: string | null, status: TaskStatus) => void;
+  /** 並べ替え＋セル移動。beforeId の直前に挿入（null なら末尾） */
+  reorderTask: (
+    id: string,
+    categoryId: string | null,
+    status: TaskStatus,
+    beforeId: string | null
+  ) => void;
 
   // カテゴリ
   addCategory: (name: string) => void;
@@ -166,6 +173,33 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const reorderTask = useCallback<AppDataContextValue["reorderTask"]>(
+    (id, categoryId, status, beforeId) => {
+      setTasks((prev) => {
+        const active = prev.find((t) => t.id === id);
+        if (!active) return prev;
+        const updated: Task = {
+          ...active,
+          categoryId,
+          status,
+          updatedAt: nowIso(),
+          completedAt: status === "done" ? (active.completedAt ?? nowIso()) : null,
+        };
+        const rest = prev.filter((t) => t.id !== id);
+        if (beforeId && beforeId !== id) {
+          const idx = rest.findIndex((t) => t.id === beforeId);
+          if (idx >= 0) {
+            rest.splice(idx, 0, updated);
+            return rest;
+          }
+        }
+        rest.push(updated);
+        return rest;
+      });
+    },
+    []
+  );
+
   // ── カテゴリ ──
   const addCategory = useCallback<AppDataContextValue["addCategory"]>((name) => {
     const trimmed = name.trim();
@@ -234,6 +268,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updateTask,
       deleteTask,
       moveTask,
+      reorderTask,
       addCategory,
       renameCategory,
       deleteCategory,
@@ -250,6 +285,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updateTask,
       deleteTask,
       moveTask,
+      reorderTask,
       addCategory,
       renameCategory,
       deleteCategory,

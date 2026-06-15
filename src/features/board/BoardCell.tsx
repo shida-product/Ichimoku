@@ -1,4 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
 
 /** セル ID 生成: `${カテゴリキー}__${状態}`（カテゴリキー uncat = 未分類） */
@@ -17,11 +18,14 @@ export function BoardCell({
   isDone,
   children,
   isEmpty,
+  itemIds,
 }: {
   id: string;
   isDone: boolean;
   children: React.ReactNode;
   isEmpty: boolean;
+  /** このセル内のタスク id（並べ替え順） */
+  itemIds: string[];
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
@@ -33,7 +37,9 @@ export function BoardCell({
         isOver && "bg-accent ring-2 ring-primary/40"
       )}
     >
-      {children}
+      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+        {children}
+      </SortableContext>
       {isEmpty ? (
         <span className="px-1 py-2 text-center text-[11px] text-ink-3/60 select-none">—</span>
       ) : null}

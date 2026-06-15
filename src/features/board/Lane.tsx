@@ -27,14 +27,17 @@ export function Lane({
   muted?: boolean;
 }) {
   return (
-    <div className="border-b-2 border-border px-4 py-1.5 last:border-b-0">
+    <div className="border-b border-border last:border-b-0">
+      {/* カテゴリ見出し帯（フル幅・カテゴリ色の淡い地） */}
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full cursor-pointer items-center gap-2 py-1.5 select-none"
+        style={{ backgroundColor: `${color}2e` }}
+        className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 select-none"
       >
-        <span className="size-2.5 rounded-[3px]" style={{ background: color }} />
-        <span className={cn("text-[13px] font-medium", muted && "text-muted-foreground")}>
+        <span
+          className={cn("text-[13px] font-semibold", muted && "font-medium text-muted-foreground")}
+        >
           {name}
         </span>
         <span className="text-[11px] text-ink-3">{tasks.length}</span>
@@ -47,7 +50,7 @@ export function Lane({
       </button>
 
       {!collapsed && (
-        <div className="grid grid-cols-3 gap-2.5 pb-1.5">
+        <div className="grid grid-cols-3 gap-2.5 px-4 pt-2 pb-3">
           {STATUS_ORDER.map((status) => {
             const cards = tasks.filter((t) => t.status === status);
             return (
@@ -56,6 +59,7 @@ export function Lane({
                 id={cellId(categoryKey, status)}
                 isDone={status === "done"}
                 isEmpty={cards.length === 0}
+                itemIds={cards.map((c) => c.id)}
               >
                 {cards.map((t) => (
                   <TaskCard key={t.id} task={t} showMemo={showMemo} />
