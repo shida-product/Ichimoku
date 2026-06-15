@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.ruff_cache/
+
+# Node / Web
+node_modules/
+
+# 実行時生成物
+logs/
+screenshots/
+explore/
+*.log
+
+# 環境・秘密情報
+.env
+.env.*

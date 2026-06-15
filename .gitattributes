@@ -1,0 +1,3 @@
+* text=auto eol=crlf
+*.py text eol=crlf
+*.{js,ts,json,html,css,md,toml,yml,yaml} text eol=crlf

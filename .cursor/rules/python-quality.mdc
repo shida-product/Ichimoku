@@ -1,0 +1,30 @@
+---
+description: Pythonコード品質規約（Ruff準拠）
+globs: **/*.py
+alwaysApply: false
+---
+
+# Python 品質規約
+
+- フォーマッタ/リンタは **Ruff**（設定は `pyproject.toml`）。line-length=100。
+- 型ヒントを付ける。公開関数には引数・戻り値の型を明示。
+- import整理はRuff(isort)に任せる。手動並べ替えはしない。
+- 例外は握りつぶさない。
+
+```python
+# ❌ BAD
+try:
+    do()
+except Exception:
+    pass
+
+# ✅ GOOD
+try:
+    do()
+except Exception as e:
+    logger.error("do() failed", exc_info=e)
+    raise
+```
+
+- コードを単に説明するだけのコメントは書かない（意図・制約のみ記す）。
+- 文字コードはUTF-8、改行はCRLF（`.editorconfig` 準拠）。

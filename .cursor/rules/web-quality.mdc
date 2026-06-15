@@ -1,0 +1,13 @@
+---
+description: Web(HTML/CSS/JS/TS)コード品質規約
+globs: **/*.{js,jsx,ts,tsx,css,scss,html}
+alwaysApply: false
+---
+
+# Web 品質規約
+
+- 整形は **Prettier**（`.prettierrc.json`）、検証は **ESLint**（`eslint.config.js`）。
+- printWidth=100 / tabWidth=2 / セミコロンあり / ダブルクォート。
+- `var` は使わず `const` / `let`。未使用変数は残さない。
+- DOM操作やfetchはエラーハンドリングを必ず付ける。
+- Web資産が不要なプロジェクトでは `package.json` 等を削除してよい。

@@ -1,0 +1,38 @@
+{
+  // Cursor / Antigravity(Open VSX) 双方で入手可能なものを厳選。
+  // 拡張本体の同期は各 IDE の Settings Sync。ここは「推奨リスト」の提示のみ。
+  "recommendations": [
+    // --- 自動整形・検証（AIの自走品質を自動担保）---
+    "charliermarsh.ruff",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+
+    // --- レビュー支援（人間=監査役）---
+    "usernamehw.errorlens",
+    "eamodio.gitlens",
+    "oderwat.indent-rainbow",
+
+    // --- 言語サポート ---
+    "ms-python.python",
+    "ms-python.debugpy",
+    "ms-python.vscode-python-envs",
+    "bmewburn.vscode-intelephense-client",
+
+    // --- Web プレビュー ---
+    "ms-vscode.live-server",
+
+    // --- 定番ユーティリティ ---
+    "naumovs.color-highlight",
+    "mechatroner.rainbow-csv",
+    "humao.rest-client",
+    "github.vscode-github-actions",
+    "ms-ceintl.vscode-language-pack-ja"
+  ],
+  "unwantedRecommendations": [
+    // AI主導開発では視覚ノイズ / 無駄な負荷
+    "streetsidesoftware.code-spell-checker",
+    "christian-kohler.path-intellisense",
+    // 更新停滞の旧 Live Server（Microsoft 公式版を推奨）
+    "ritwickdey.liveserver"
+  ]
+}
