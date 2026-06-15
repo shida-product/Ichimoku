@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Mail, Lock, Loader2, LogIn, UserPlus, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Mail, Lock, Loader2, LogIn, UserPlus, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function AuthScreen() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -18,16 +19,10 @@ export function AuthScreen() {
 
     try {
       if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error, data } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+        const { error, data } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
 
         if (data?.user && data.session === null) {
@@ -42,74 +37,72 @@ export function AuthScreen() {
     }
   };
 
-  return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-radial from-slate-900 via-zinc-950 to-black p-4 relative overflow-hidden">
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-purple-900/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-violet-900/15 blur-[120px] pointer-events-none" />
+  const switchMode = (next: "signin" | "signup") => {
+    setMode(next);
+    setError(null);
+    setMessage(null);
+  };
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-violet-400 via-purple-300 to-indigo-400 bg-clip-text text-transparent mb-2">
-            Ichimoku
-          </h1>
-          <p className="text-sm text-slate-400">経営者のための1画面・タスク消化型ツール</p>
+  return (
+    <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <h1 className="m-0 text-3xl font-bold tracking-[0.02em] text-foreground">Ichimoku</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            経営者のための 1画面・タスク消化型ツール
+          </p>
         </div>
 
-        <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
-          <div className="flex border-b border-zinc-800 mb-6">
+        <div className="rounded-xl border border-border bg-card p-8 shadow-[0_8px_24px_rgba(20,30,28,0.06)]">
+          {/* モード切替タブ */}
+          <div className="mb-6 flex border-b border-border">
             <button
-              onClick={() => {
-                setMode("signin");
-                setError(null);
-                setMessage(null);
-              }}
-              className={`flex-1 pb-3 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
+              type="button"
+              onClick={() => switchMode("signin")}
+              className={`flex flex-1 items-center justify-center gap-2 pb-3 text-sm font-semibold transition-colors ${
                 mode === "signin"
-                  ? "text-violet-400 border-b-2 border-violet-500"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-ink-3 hover:text-foreground"
               }`}
             >
-              <LogIn className="w-4 h-4" />
+              <LogIn className="size-4" />
               ログイン
             </button>
             <button
-              onClick={() => {
-                setMode("signup");
-                setError(null);
-                setMessage(null);
-              }}
-              className={`flex-1 pb-3 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
+              type="button"
+              onClick={() => switchMode("signup")}
+              className={`flex flex-1 items-center justify-center gap-2 pb-3 text-sm font-semibold transition-colors ${
                 mode === "signup"
-                  ? "text-violet-400 border-b-2 border-violet-500"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-ink-3 hover:text-foreground"
               }`}
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus className="size-4" />
               アカウント登録
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-950/30 border border-red-900/50 text-red-300 p-4 rounded-lg flex items-start gap-3 text-sm">
-                <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
+              <div className="flex items-start gap-3 rounded-md border border-crit-soft bg-crit-soft p-3 text-sm text-crit">
+                <AlertCircle className="size-5 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {message && (
-              <div className="bg-emerald-950/30 border border-emerald-900/50 text-emerald-300 p-4 rounded-lg flex items-start gap-3 text-sm">
-                <AlertCircle className="w-5 h-5 shrink-0 text-emerald-400" />
+              <div className="flex items-start gap-3 rounded-md border border-accent bg-accent p-3 text-sm text-accent-foreground">
+                <CheckCircle2 className="size-5 shrink-0" />
                 <span>{message}</span>
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
+              <label className="text-xs font-semibold tracking-wider text-muted-foreground">
                 メールアドレス
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <Mail className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3" />
                 <input
                   type="email"
                   required
@@ -117,17 +110,17 @@ export function AuthScreen() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
-                  className="w-full bg-zinc-950/50 border border-zinc-800 text-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all placeholder:text-zinc-600 disabled:opacity-50"
+                  className="w-full rounded-md border border-input bg-card py-2.5 pr-4 pl-10 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50 placeholder:text-ink-3"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
+              <label className="text-xs font-semibold tracking-wider text-muted-foreground">
                 パスワード
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <Lock className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3" />
                 <input
                   type="password"
                   required
@@ -135,27 +128,23 @@ export function AuthScreen() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
-                  className="w-full bg-zinc-950/50 border border-zinc-800 text-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all placeholder:text-zinc-600 disabled:opacity-50"
+                  className="w-full rounded-md border border-input bg-card py-2.5 pr-4 pl-10 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50 placeholder:text-ink-3"
                 />
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold rounded-lg py-3 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-violet-500/50 shadow-lg shadow-violet-950/20 disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
-            >
+            <Button type="submit" size="lg" disabled={loading} className="w-full">
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  処理中...
+                  <Loader2 className="size-4 animate-spin" />
+                  処理中…
                 </>
               ) : mode === "signin" ? (
                 "ログイン"
               ) : (
                 "新規アカウント登録"
               )}
-            </button>
+            </Button>
           </form>
         </div>
       </div>

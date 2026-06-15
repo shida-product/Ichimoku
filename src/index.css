@@ -1,1 +1,133 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+  Ichimoku デザイントークン（単一の正本）
+  ------------------------------------------------------------------
+  ・配色は prototype-overlay.html（操作モデルの正本）に準拠したライト/緑。
+  ・全コンポーネントはここで定義したセマンティックトークンのみを使う。
+    生 16 進値をコンポーネントに直書きしない（統一性の担保）。
+  ・shadcn/ui のセマンティック名（background/foreground/primary…）に
+    プロトタイプの色を割り当て、shadcn 製と自作の双方を一本化する。
+  詳細な使い分けは docs/design.md を参照。
+*/
+
+/* ダークは class 起点に固定（OS のダーク設定で勝手に反転させない＝常にライト） */
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.7rem; /* ≒ 11px。カード等の基準角丸 */
+
+  /* 面 */
+  --background: #eef1f0; /* アプリ地（page） */
+  --foreground: #1c2826; /* 既定の文字（ink） */
+  --card: #ffffff; /* パネル/カード面（surface） */
+  --card-foreground: #1c2826;
+  --popover: #ffffff;
+  --popover-foreground: #1c2826;
+
+  /* アクセント（深緑） */
+  --primary: #2f6f62;
+  --primary-foreground: #ffffff;
+  --accent: #e4efeb; /* アクセントの淡色（hover 地など） */
+  --accent-foreground: #2f6f62;
+
+  /* 副次面 */
+  --secondary: #f5f7f6; /* くぼみ面（sunk） */
+  --secondary-foreground: #1c2826;
+  --muted: #f5f7f6;
+  --muted-foreground: #5c6a66; /* 副文字（ink2） */
+
+  /* 破壊的/緊急（締切：3日以内） */
+  --destructive: #c2410c;
+  --destructive-foreground: #ffffff;
+
+  /* 線 */
+  --border: #e0e6e3; /* 標準の線（line） */
+  --input: #cdd6d2; /* 入力枠・強めの線（line2） */
+  --ring: #2f6f62; /* フォーカスリング */
+
+  /* ドメイン拡張トークン */
+  --ink-3: #8c9794; /* 最も淡い補助文字（プレースホルダ等） */
+  --crit: #c2410c; /* 締切 3日以内＝赤 */
+  --crit-soft: #fbeae1;
+  --warn: #b45309; /* 締切 7日以内＝橙 */
+  --warn-soft: #f7eedd;
+  --cat-jimu: #6b7c93; /* カテゴリ標準色：事務 */
+  --cat-keiei: #8a6d3b; /* 経営 */
+  --cat-saiyo: #7a5c8e; /* 採用 */
+  --cat-mibun: #9aa29f; /* 未分類 */
+
+  /* 書体（外部フォント取得に依存しない堅牢なフォールバック） */
+  --font-sans:
+    "Noto Sans JP", ui-sans-serif, system-ui, "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo",
+    sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, "SFMono-Regular", "Consolas", monospace;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink-3: var(--ink-3);
+  --color-crit: var(--crit);
+  --color-crit-soft: var(--crit-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-cat-jimu: var(--cat-jimu);
+  --color-cat-keiei: var(--cat-keiei);
+  --color-cat-saiyo: var(--cat-saiyo);
+  --color-cat-mibun: var(--cat-mibun);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* 数字の桁揃え（締切日・時刻など） */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
