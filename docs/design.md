@@ -52,7 +52,10 @@
 
 - **角丸**: 基準 `--radius = 0.7rem(≒11px)`。カード=`rounded-lg`、コントロール=`rounded-md`、チップ=`rounded-full`。
 - **余白**: パネル内 padding は 12〜16px を基準。要素間 gap は 8〜16px。
-- **書体**: `--font-sans`（Noto Sans JP → system フォールバック）。数字の桁揃えが要る箇所（締切日・時刻）は `tabular` クラス。
+- **書体**:
+  - 本文・データ・操作系 = `--font-sans`（Noto Sans JP → system フォールバック）。数字の桁揃えが要る箇所（締切日・時刻）は `tabular` クラス。
+  - 見出し・ブランド = `font-display`（`--font-display` = Zen Old Mincho 明朝）。ブランド「Ichimoku」とブロック見出し（タスクボード/カレンダー）に限定適用。
+  - フォント DL を抑えるため **Zen Old Mincho はラテンのみ同梱**（各約16KB）。日本語見出しは OS の明朝（游明朝/ヒラギノ明朝）にフォールバックさせ、日本語ウェブフォント約2MB/ウェイトの読み込みを回避する。
 - **タップ標的**: クリック/タップ要素は最低 24×24px（推奨 44×44px）。shadcn `Button` の既定サイズで担保。
 
 ---

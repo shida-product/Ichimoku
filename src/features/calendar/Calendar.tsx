@@ -42,7 +42,7 @@ export function Calendar() {
   return (
     <section className="flex min-h-0 flex-col rounded-lg border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <span className="flex items-center gap-2 text-sm font-bold">
+        <span className="flex items-center gap-2 font-display text-[15px] font-bold">
           <CalendarDays className="size-4 text-muted-foreground" />
           カレンダー
         </span>

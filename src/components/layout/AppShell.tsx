@@ -52,7 +52,7 @@ export function AppShell() {
     <div className="mx-auto flex h-screen max-w-[1320px] flex-col overflow-hidden">
       {/* ── トップバー ── */}
       <header className="flex items-center gap-3 px-[22px] pt-[14px] pb-2">
-        <h1 className="m-0 text-[21px] font-bold tracking-[0.02em]">Ichimoku</h1>
+        <h1 className="m-0 font-display text-[22px] font-bold tracking-[0.04em]">Ichimoku</h1>
 
         <div className="ml-auto flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={openCategory}>

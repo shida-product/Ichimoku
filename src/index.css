@@ -63,6 +63,8 @@
     "Noto Sans JP", ui-sans-serif, system-ui, "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo",
     sans-serif;
   --font-mono: "Roboto Mono", ui-monospace, "SFMono-Regular", "Consolas", monospace;
+  /* 見出し専用（明朝）。本文には使わない＝font-display ユーティリティで明示適用 */
+  --font-display: "Zen Old Mincho", "Yu Mincho", "Hiragino Mincho ProN", serif;
 }
 
 @theme inline {
@@ -98,6 +100,7 @@
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

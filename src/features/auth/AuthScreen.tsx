@@ -47,7 +47,9 @@ export function AuthScreen() {
     <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="m-0 text-3xl font-bold tracking-[0.02em] text-foreground">Ichimoku</h1>
+          <h1 className="m-0 font-display text-3xl font-bold tracking-[0.04em] text-foreground">
+            Ichimoku
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             経営者のための 1画面・タスク消化型ツール
           </p>
