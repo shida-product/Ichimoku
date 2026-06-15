@@ -46,3 +46,25 @@
 
 - **✅ Solution / Rule:**
   TanStack Query v5 の `mutation.mutate` / `mutateAsync` は**安定参照**。ローカル変数に取り出して（`const m = mut.mutate;`）effect の依存配列に素直に含めれば、毎レンダー再実行されず lint も通る。ref を使うなら更新は effect 内で行い、render 中には書かない。
+
+---
+
+### 2026-06-15 [Supabase][Timezone] timestamptz への日付保存時はタイムゾーンを意識する
+
+- **❌ Anti-pattern:**
+  `toLocalIso()` などで生成したタイムゾーン情報を含まない naive なローカル ISO 文字列（`YYYY-MM-DDTHH:mm:ss`）をそのまま DB の `timestamptz` に保存すること。DB側はUTCとして解釈してしまい、再取得後に `new Date()` するとローカル時間にズレて再計算される（例: 日本時間 9:00 で保存した予定が、再取得後に 18:00 にズレる）。
+
+- **✅ Solution / Rule:**
+  DBとのやり取り部分で相互変換を行う。
+  - **DBへの書き込み時**: naive ローカル ISO 文字列を `new Date(localIso).toISOString()` 等で UTC 表現（`Z` 付）に変換して渡す。
+  - **DBからの取得時**: DB から戻る UTC 時間（tz 付）を `toLocalIso(new Date(utcString))` で naive ローカル ISO 文字列に再変換してドメインオブジェクトに格納し、UI 側コードは常にローカル時間表現として扱う。
+
+---
+
+### 2026-06-15 [React][DnD] 週・日グリッドなどのドラッグ中要素のアンマウントに注意
+
+- **❌ Anti-pattern:**
+  週表示カレンダーなどで予定を他の日のカラムにドラッグした際、ドラッグ先の日に移動した（`drag.dayIndex !== di`）と判定して元のループから要素を非表示（`return null`）にすること。要素がアンマウントされ、ポインターキャプチャ（PointerCapture）が強制解除されるため `onPointerUp` が一切届かなくなり、ドラッグ中ステートが解放されず予定が消滅したようになる。
+
+- **✅ Solution / Rule:**
+  ドラッグ中の要素は、常にドラッグを開始した元のインデックス（`origDayIndex`）のループで描画・マウントを維持し続ける。位置の移動は `left` スタイルなどを `(dayIndex - origDayIndex) * 100%` としてはみ出す形で絶対配置することで、マウントを維持しながら視覚的に他の日のカラムへ移動させることができる。

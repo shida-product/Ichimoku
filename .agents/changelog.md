@@ -2,6 +2,20 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-15] Codex Review 自動指摘 (P1/P2) の修正
+
+- **判断背景**:
+  - GitHub PR #1 に対する自動コードレビュー（Codex Review）による指摘3点に対応。
+  - timestamptzの日付保存においてブラウザ/DB間のタイムゾーン乖離で日時表示がズレる不具合（P1）を解消。
+  - カレンダーの週表示において、予定を別の日へドラッグした際に要素がアンマウントされドラッグ操作が破綻するバグ（P2）を解消。
+  - 週表示切替後にヘッダーの「予定」ボタンから予定作成すると、常に今日の週に作られてしまうバグ（P2）を解消。
+- **変更点**:
+  - `src/store/AppDataContext.tsx`: `rowToEvent` にて取得データを naive ローカル ISO へパースし、`eventToInsertRow` / `eventPatchToRow` にて DB 保存前に UTC ISO 文字列に相互変換して保存。
+  - `src/features/calendar/TimeGrid.tsx`: ドラッグ中要素の描画カラムをドラッグ開始のカラム (`origDayIndex`) に固定し、表示位置 `left` を `(dayIndex - origDayIndex) * 100%` としてはみ出し描画することでアンマウントを防止。
+  - `src/features/calendar/Calendar.tsx`: `addAtAnchor` で週表示でも `anchor` (表示中の週) を基準に予定を作成するよう修正。
+  - `.agents/lessons/web.md`: タイムゾーン考慮とDnD要素アンマウントに関する教訓を追記。
+- **検証状況**: 型チェック・ESLint・`npm run build` 通過。
+
 ## [2026-06-15] 完了タスクの自動アーカイブ（Step 14）
 
 - **判断背景**:
