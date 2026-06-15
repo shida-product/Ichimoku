@@ -21,11 +21,11 @@
 
 ## 📚 カテゴリ別アーカイブ（オンデマンド）
 
-| カテゴリ                                   | 着手前に読むタイミング         |
-| ------------------------------------------ | ------------------------------ |
-| [lessons/encoding.md](lessons/encoding.md) | ターミナルで日本語ファイル操作 |
-| [lessons/security.md](lessons/security.md) | 認証・API キー・秘密情報の扱い |
-| [lessons/web.md](lessons/web.md) | Web 開発の環境構築・ビルドの扱い |
+| カテゴリ                                   | 着手前に読むタイミング           |
+| ------------------------------------------ | -------------------------------- |
+| [lessons/encoding.md](lessons/encoding.md) | ターミナルで日本語ファイル操作   |
+| [lessons/security.md](lessons/security.md) | 認証・API キー・秘密情報の扱い   |
+| [lessons/web.md](lessons/web.md)           | Web 開発の環境構築・ビルドの扱い |
 
 ---
 

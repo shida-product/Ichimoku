@@ -8,13 +8,13 @@
 
 ## 0. 前提と全体像
 
-| 項目 | 値 |
-| --- | --- |
-| 同期方向 | 双方向（読み書き） |
-| 使用スコープ | `https://www.googleapis.com/auth/calendar.events`（予定の読み書き） |
-| 認証基盤 | Supabase Auth の Google プロバイダ（既存の Supabase Auth に相乗り） |
-| テストユーザー | btb.grandioso.08@gmail.com（自分） |
-| 料金 | API 無料 / テスト段階は審査不要（最大100人まで手動登録） |
+| 項目           | 値                                                                  |
+| -------------- | ------------------------------------------------------------------- |
+| 同期方向       | 双方向（読み書き）                                                  |
+| 使用スコープ   | `https://www.googleapis.com/auth/calendar.events`（予定の読み書き） |
+| 認証基盤       | Supabase Auth の Google プロバイダ（既存の Supabase Auth に相乗り） |
+| テストユーザー | btb.grandioso.08@gmail.com（自分）                                  |
+| 料金           | API 無料 / テスト段階は審査不要（最大100人まで手動登録）            |
 
 全体の流れ:
 
@@ -88,6 +88,7 @@
    - `<PROJECT_REF>` は Supabase プロジェクト固有の文字列。
    - 見つけ方: Supabase ダッシュボード → 対象プロジェクト → Project Settings → Data API（または API） に表示される `Project URL`（例 `https://abcdefgh.supabase.co`）の `https://` と `.supabase.co` の間。
    - 正確な URL は次章「6. Supabase 側」でも Supabase 画面にそのまま表示されるので、それをコピペするのが確実。
+
 6. 「作成」をクリック。
 7. ポップアップに表示される **クライアント ID** と **クライアント シークレット** を控える（後でコピーできるが、ここで保存しておくと楽）。
 
@@ -129,11 +130,11 @@
 
 以下を共有してくれれば実装に入れる（シークレットはチャットに貼らず、安全な方法で渡すのが理想だが、ローカル開発なら `.env.local` に直接記入でも可）:
 
-| 渡すもの | 用途 | 置き場所 |
-| --- | --- | --- |
-| Supabase Project URL | 既存 | `.env.local` の `VITE_SUPABASE_URL` |
-| Supabase anon key | 既存 | `.env.local` の `VITE_SUPABASE_ANON_KEY` |
-| Google クライアント ID / シークレット | Supabase 管理画面に登録済みなら **コードには不要** | Supabase 側に保存済み |
+| 渡すもの                              | 用途                                               | 置き場所                                 |
+| ------------------------------------- | -------------------------------------------------- | ---------------------------------------- |
+| Supabase Project URL                  | 既存                                               | `.env.local` の `VITE_SUPABASE_URL`      |
+| Supabase anon key                     | 既存                                               | `.env.local` の `VITE_SUPABASE_ANON_KEY` |
+| Google クライアント ID / シークレット | Supabase 管理画面に登録済みなら **コードには不要** | Supabase 側に保存済み                    |
 
 ※ Google のクライアント ID / シークレットは **Supabase の管理画面に入れるだけ** で、アプリのコードや `.env` に書く必要はない（Supabase が OAuth を仲介するため）。コード側は Supabase の `signInWithOAuth({ provider: 'google', options: { scopes: 'https://www.googleapis.com/auth/calendar.events', queryParams: { access_type: 'offline', prompt: 'consent' } } })` を呼ぶだけ。
 
