@@ -50,6 +50,7 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 
 ## 確定仕様・境界
 
+- **リポジトリ**: `https://github.com/shida-product/Ichimoku.git`（メインブランチ: `main`）
 - **仕様の正本**: `task-board-spec-v1.md` (v1.3 技術確定版)
 - **操作モデルの正**: `prototype-overlay.html`
 - **デザイン正本**: 配色・余白・角丸の実体は `src/index.css`（**案B「温かみ」＝クリーム地/テラコッタ準拠**の統一トークン。角丸 0.5rem、タスクカードは `--shadow-card` で軽い影＋左色ストライプなしのフラット）。比較検討した 3 案は `design-explorations/`（採用＝B-warm.html）。使い方は `docs/design.md`。**コンポーネントに生の 16 進値や `zinc-*` 等を直書きせず、必ずセマンティックトークン経由**。中央モーダル封印・保存ボタン禁止（自動保存）・オーバーレイは常に 1 枚。
