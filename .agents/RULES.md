@@ -48,16 +48,16 @@
 
 ## 2. 絶対ルール（Always Rules）
 
-| # | ルール | 概要 |
-|---|---|---|
-| A1 | **No Placeholders** | `// ...省略...` のような省略記法でコードを返さない。コピペで動く完全なコードを出力する。 |
-| A2 | **Verification Before Done** | 完了宣言前に、要求を満たして動くか・副作用はないかを自問自答する。 |
-| A3 | **Stop & Report** | 10 ステップ超の連続ツール実行が見えたら停止し、進捗と判断ポイントを提示する。 |
-| A4 | **Assumption-Free** | 既存の構造・命名・データフローは推測で書かない。必ず既存ファイルを確認してから実装する。 |
-| A5 | **Semantic Committer** | Git コミットは Conventional Commits 準拠の日本語メッセージ。**関心事ごとに分割**し、**固まってから**コミット（逐一コミットしない）。 |
-| A6 | **ADR Manager** | DB 設計変更・新システム導入・大規模リファクタ時は `docs/adr/` に ADR を残す（プロジェクトで採用している場合）。 |
-| A7 | **Autonomous Handoff** | 作業の区切りで、指示なく `handover` を更新する。教訓・マイルストーンがあれば `lessons` / `changelog` も更新する（`session-close.md` 参照）。 |
-| A8 | **Lock Protocol** | 編集前に `state/locks.md` に追記、終了時に削除。ロック中ファイルは触らない。ロック外は並列可。 |
+| #   | ルール                       | 概要                                                                                                                                         |
+| --- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | **No Placeholders**          | `// ...省略...` のような省略記法でコードを返さない。コピペで動く完全なコードを出力する。                                                     |
+| A2  | **Verification Before Done** | 完了宣言前に、要求を満たして動くか・副作用はないかを自問自答する。                                                                           |
+| A3  | **Stop & Report**            | 10 ステップ超の連続ツール実行が見えたら停止し、進捗と判断ポイントを提示する。                                                                |
+| A4  | **Assumption-Free**          | 既存の構造・命名・データフローは推測で書かない。必ず既存ファイルを確認してから実装する。                                                     |
+| A5  | **Semantic Committer**       | Git コミットは Conventional Commits 準拠の日本語メッセージ。**関心事ごとに分割**し、**固まってから**コミット（逐一コミットしない）。         |
+| A6  | **ADR Manager**              | DB 設計変更・新システム導入・大規模リファクタ時は `docs/adr/` に ADR を残す（プロジェクトで採用している場合）。                              |
+| A7  | **Autonomous Handoff**       | 作業の区切りで、指示なく `handover` を更新する。教訓・マイルストーンがあれば `lessons` / `changelog` も更新する（`session-close.md` 参照）。 |
+| A8  | **Lock Protocol**            | 編集前に `state/locks.md` に追記、終了時に削除。ロック中ファイルは触らない。ロック外は並列可。                                               |
 
 ---
 
@@ -120,10 +120,10 @@
 
 ### 7-1. プロジェクト固有のコマンド
 
-| 対象 | コマンド | 場所 |
-|---|---|---|
-| Web 整形 | `npm run format` | リポジトリルート |
-| Web リント | `npm run lint` | リポジトリルート |
+| 対象       | コマンド         | 場所             |
+| ---------- | ---------------- | ---------------- |
+| Web 整形   | `npm run format` | リポジトリルート |
+| Web リント | `npm run lint`   | リポジトリルート |
 
 プロジェクト固有のコマンドが増えたら、この表を更新してください。
 
@@ -149,34 +149,34 @@
 
 ### 9-1. プロジェクト概要
 
-| 項目 | 内容 |
-|---|---|
-| プロジェクト名 | **Hibi**（仮称）— 経営者向けタスク消化型ツール |
-| 概要 | 1画面・遷移ゼロで タスクボード＋近日締切レーン＋カレンダーを並置 |
-| 主言語 | TypeScript (Next.js App Router) |
-| バックエンド | Supabase (Postgres + Auth + RLS) |
-| ホスティング | Vercel（予定） |
-| 仕様書 | `task-board-spec-v1.md` |
-| UIプロト | `prototype-overlay.html` |
-| 本番 URL | （未デプロイ） |
-| Danger Zone | `.env.local`（Supabase キー）、Supabase マイグレーション、`vercel.json` |
+| 項目           | 内容                                                                    |
+| -------------- | ----------------------------------------------------------------------- |
+| プロジェクト名 | **Ichimoku**（イチモク）— 経営者向けタスク消化型ツール                  |
+| 概要           | 1画面・遷移ゼロで タスクボード＋近日締切レーン＋カレンダーを並置        |
+| 主言語         | TypeScript (Next.js App Router)                                         |
+| バックエンド   | Supabase (Postgres + Auth + RLS)                                        |
+| ホスティング   | Vercel（予定）                                                          |
+| 仕様書         | `task-board-spec-v1.md`                                                 |
+| UIプロト       | `prototype-overlay.html`                                                |
+| 本番 URL       | （未デプロイ）                                                          |
+| Danger Zone    | `.env.local`（Supabase キー）、Supabase マイグレーション、`vercel.json` |
 
 ### 9-2. Workflow Routing（着手前に何を読むか）
 
-| 作業内容 | 読み込むファイル |
-|---|---|
-| 起動・終了手順（正本） | `.agents/BOOTSTRAP.md` |
-| ツール別読み込み経路 | `.agents/ADAPTERS.md` |
-| オーケストレーション全体像 | `.agents/orchestration.md` |
-| 編集ロック・並列調整 | `.agents/state/locks.md` |
-| AI セッション運用 | `.agents/workflows/ai-session.md` |
-| 作業完了時の自律引き継ぎ | `.agents/workflows/session-close.md` |
-| Git 操作・コミット | `.agents/workflows/git-safety.md` |
-| 人間によるレビュー | `.agents/workflows/review-checklist.md` |
+| 作業内容                     | 読み込むファイル                         |
+| ---------------------------- | ---------------------------------------- |
+| 起動・終了手順（正本）       | `.agents/BOOTSTRAP.md`                   |
+| ツール別読み込み経路         | `.agents/ADAPTERS.md`                    |
+| オーケストレーション全体像   | `.agents/orchestration.md`               |
+| 編集ロック・並列調整         | `.agents/state/locks.md`                 |
+| AI セッション運用            | `.agents/workflows/ai-session.md`        |
+| 作業完了時の自律引き継ぎ     | `.agents/workflows/session-close.md`     |
+| Git 操作・コミット           | `.agents/workflows/git-safety.md`        |
+| 人間によるレビュー           | `.agents/workflows/review-checklist.md`  |
 | Windows で日本語ファイル操作 | `.agents/workflows/terminal-encoding.md` |
-| 推奨拡張・IDE 同期方針 | `.agents/workflows/extensions.md` |
+| 推奨拡張・IDE 同期方針       | `.agents/workflows/extensions.md`        |
 
-| 着手内容 | 読み込むファイル |
-|---|---|
+| 着手内容                   | 読み込むファイル              |
+| -------------------------- | ----------------------------- |
 | エンコーディング・文字化け | `.agents/lessons/encoding.md` |
-| セキュリティ全般 | `.agents/lessons/security.md` |
+| セキュリティ全般           | `.agents/lessons/security.md` |
