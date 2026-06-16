@@ -29,6 +29,8 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 
 **次の主眼は Supabase 配線**: `AppDataContext` のミューテータを TanStack Query + Supabase 呼び出しへ差し替える（インターフェースは維持。コンポーネントは原則無改修）。
 
+- Tampermonkey クイック追加（`tampermonkey/ichimoku-quick-add.user.js`）: 全サイトで動く端タブ式の素早いタスク投入。Supabase REST に直接 INSERT（本体モックとは独立）。普段は端の細い帯、クリックで追加パネル、上下ドラッグ移動＋左右端スナップ（位置は `GM_setValue` 保持）。初回ログイン→セッション保持＋自動リフレッシュ。`position` は fractional index 本実装（#2）までタイムスタンプ文字列の暫定。利用には Supabase 稼働＋スクリプト冒頭の URL/anon key 設定が必要（`tampermonkey/README.md`）。
+
 ## Next Actions
 
 | 優先 | タスク                                                                                                        | 状態 |
