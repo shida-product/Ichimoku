@@ -10,6 +10,26 @@ import { X } from "lucide-react";
 export const fieldClass =
   "w-full rounded-md border border-input bg-card px-2.5 py-2 text-[13px] outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/25 placeholder:text-ink-3";
 
+/** パネル先頭のタイトル入力（タスク・予定で共通）。 */
+export const titleInputClass =
+  "border-b border-border pb-1.5 text-base font-medium outline-none transition-colors focus:border-ring";
+
+/** パネルフッターの左右配置。メタ情報・危険操作・保存操作の見た目を揃える。 */
+export function PanelFooterRow({
+  left,
+  right,
+}: {
+  left?: React.ReactNode;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0 text-[11px] text-ink-3">{left}</div>
+      <div className="flex shrink-0 items-center gap-2">{right}</div>
+    </div>
+  );
+}
+
 /**
  * 自動保存テキスト入力を IME（日本語変換）セーフにする共通フック。
  *

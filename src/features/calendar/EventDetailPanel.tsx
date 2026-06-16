@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
-import { AutoTextarea, PanelShell, fieldClass } from "@/features/_shared/panel";
+import {
+  AutoTextarea,
+  PanelFooterRow,
+  PanelShell,
+  fieldClass,
+  titleInputClass,
+} from "@/features/_shared/panel";
 import { Switch } from "@/components/ui/switch";
 import { MiniRangeCalendar, type DateRange } from "@/features/calendar/MiniRangeCalendar";
 import { parseIso, ymd } from "@/lib/calendar";
@@ -129,30 +135,33 @@ export function EventDetailPanel({
   if (eventId && !existing) return null;
 
   const footer = (
-    <div className="flex items-center justify-between">
-      {existing ? (
-        <button
-          type="button"
-          onClick={() => {
-            deleteEvent(existing.id);
-            onClose();
-          }}
-          className="inline-flex items-center gap-1 text-[13px] text-crit transition-colors hover:underline"
-        >
-          <Trash2 className="size-3.5" /> 削除
-        </button>
-      ) : (
-        <span />
-      )}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          キャンセル
-        </Button>
-        <Button size="sm" disabled={!canSave} onClick={save}>
-          {existing ? "更新" : "保存"}
-        </Button>
-      </div>
-    </div>
+    <PanelFooterRow
+      left={
+        existing ? (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              deleteEvent(existing.id);
+              onClose();
+            }}
+          >
+            <Trash2 className="size-3.5" /> 削除
+          </Button>
+        ) : null
+      }
+      right={
+        <>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            キャンセル
+          </Button>
+          <Button size="sm" disabled={!canSave} onClick={save}>
+            {existing ? "更新" : "保存"}
+          </Button>
+        </>
+      }
+    />
   );
 
   return (
@@ -161,7 +170,7 @@ export function EventDetailPanel({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         autoFocus={title === ""}
-        className="border-b border-border pb-1.5 text-base font-medium outline-none focus:border-ring"
+        className={titleInputClass}
         placeholder="予定のタイトル"
       />
 

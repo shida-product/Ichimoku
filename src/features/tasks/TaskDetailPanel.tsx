@@ -1,11 +1,14 @@
 import { ExternalLink, Plus, Star, Trash2, Undo2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAppData } from "@/store/AppDataContext";
 import { isFlagged, type TaskLink } from "@/lib/types";
 import {
   AutoInput,
   AutoTextarea,
+  PanelFooterRow,
   PanelShell,
   fieldClass,
+  titleInputClass,
   useSavedFlash,
 } from "@/features/_shared/panel";
 
@@ -54,36 +57,38 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
   const removeLink = (index: number) => patch({ links: task.links.filter((_, i) => i !== index) });
 
   const footer = (
-    <div className="flex items-center justify-between">
-      <span className="text-[11px] text-ink-3">
-        作成 {fmtDateTime(task.createdAt)} ・ 更新 {fmtDateTime(task.updatedAt)}
-      </span>
-      <div className="flex items-center gap-3">
-        {/* 完了タスク（完了履歴から開いた場合）は未着手へ戻せる */}
-        {done ? (
-          <button
+    <PanelFooterRow
+      left={`作成 ${fmtDateTime(task.createdAt)} ・ 更新 ${fmtDateTime(task.updatedAt)}`}
+      right={
+        <>
+          {/* 完了タスク（完了履歴から開いた場合）は未着手へ戻せる */}
+          {done ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                uncompleteTask(task.id);
+                onClose();
+              }}
+            >
+              <Undo2 className="size-3.5" /> 未着手へ戻す
+            </Button>
+          ) : null}
+          <Button
             type="button"
+            variant="destructive"
+            size="sm"
             onClick={() => {
-              uncompleteTask(task.id);
+              deleteTask(task.id);
               onClose();
             }}
-            className="inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground hover:underline"
           >
-            <Undo2 className="size-3.5" /> 未着手へ戻す
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => {
-            deleteTask(task.id);
-            onClose();
-          }}
-          className="inline-flex items-center gap-1 text-[13px] text-crit transition-colors hover:underline"
-        >
-          <Trash2 className="size-3.5" /> 削除
-        </button>
-      </div>
-    </div>
+            <Trash2 className="size-3.5" /> 削除
+          </Button>
+        </>
+      }
+    />
   );
 
   return (
@@ -93,7 +98,7 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
         value={task.title}
         onValueChange={(v) => patch({ title: v })}
         autoFocus={task.title === ""}
-        className="border-b border-border pb-1.5 text-base font-medium outline-none focus:border-ring"
+        className={titleInputClass}
         placeholder="タイトル"
       />
 
