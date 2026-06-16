@@ -10,7 +10,9 @@ export type ActiveOverlay =
   | { kind: "none" }
   | { kind: "task"; taskId: string; draft: boolean }
   | { kind: "category" }
-  | { kind: "event"; eventId: string; draft: boolean };
+  | { kind: "event"; eventId: string; draft: boolean }
+  | { kind: "history" }
+  | { kind: "shiftTypes" };
 
 interface OverlayContextValue {
   active: ActiveOverlay;
@@ -23,6 +25,10 @@ interface OverlayContextValue {
   openEvent: (eventId: string) => void;
   /** 追加した下書き予定を開く */
   openEventDraft: (eventId: string) => void;
+  /** 完了履歴（アーカイブ）を開く */
+  openHistory: () => void;
+  /** 勤務地（シフト種別）管理を開く */
+  openShiftTypes: () => void;
   close: () => void;
 }
 
@@ -48,11 +54,33 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
     (eventId: string) => setActive({ kind: "event", eventId, draft: true }),
     []
   );
+  const openHistory = useCallback(() => setActive({ kind: "history" }), []);
+  const openShiftTypes = useCallback(() => setActive({ kind: "shiftTypes" }), []);
   const close = useCallback(() => setActive({ kind: "none" }), []);
 
   const value = useMemo<OverlayContextValue>(
-    () => ({ active, openTask, openTaskDraft, openCategory, openEvent, openEventDraft, close }),
-    [active, openTask, openTaskDraft, openCategory, openEvent, openEventDraft, close]
+    () => ({
+      active,
+      openTask,
+      openTaskDraft,
+      openCategory,
+      openEvent,
+      openEventDraft,
+      openHistory,
+      openShiftTypes,
+      close,
+    }),
+    [
+      active,
+      openTask,
+      openTaskDraft,
+      openCategory,
+      openEvent,
+      openEventDraft,
+      openHistory,
+      openShiftTypes,
+      close,
+    ]
   );
 
   return <OverlayContext.Provider value={value}>{children}</OverlayContext.Provider>;

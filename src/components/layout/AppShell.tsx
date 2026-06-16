@@ -8,8 +8,10 @@ import { Board } from "@/features/board/Board";
 import { Calendar } from "@/features/calendar/Calendar";
 import { DeadlineRail } from "@/features/deadlines/DeadlineRail";
 import { TaskDetailPanel } from "@/features/tasks/TaskDetailPanel";
+import { CompletedHistory } from "@/features/tasks/CompletedHistory";
 import { CategoryManager } from "@/features/categories/CategoryManager";
 import { EventDetailPanel } from "@/features/calendar/EventDetailPanel";
+import { ShiftManager } from "@/features/shifts/ShiftManager";
 
 /**
  * AppShell — 1画面・遷移ゼロのベースレイアウト（仕様 §7 / §3.7）。
@@ -35,7 +37,7 @@ export function AppShell() {
     close();
   };
 
-  // side-peek（task / category / event）の中身を 1 枚で出し分け
+  // side-peek（task / category / event / history / shiftTypes）の中身を 1 枚で出し分け
   const peek =
     active.kind === "task"
       ? { label: "タスク", node: <TaskDetailPanel taskId={active.taskId} onClose={closePeek} /> }
@@ -46,7 +48,11 @@ export function AppShell() {
               label: "予定",
               node: <EventDetailPanel eventId={active.eventId} onClose={closePeek} />,
             }
-          : null;
+          : active.kind === "history"
+            ? { label: "完了履歴", node: <CompletedHistory onClose={closePeek} /> }
+            : active.kind === "shiftTypes"
+              ? { label: "勤務地管理", node: <ShiftManager onClose={closePeek} /> }
+              : null;
 
   return (
     <div className="mx-auto flex h-screen max-w-[1320px] flex-col overflow-hidden">

@@ -1,5 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
-import { CircleCheckBig, Undo2 } from "lucide-react";
+import { CircleCheckBig, History, Undo2 } from "lucide-react";
 import type { Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -11,25 +11,26 @@ const RECENT_LIMIT = 8;
 
 /**
  * 共有の「完了」ドロップゾーン（§3.1 タスク消化）。
- * カードをここにドロップ＝完了（status=done / completed_at 記録）。記録は残り、
- * N日後に自動アーカイブで畳まれる。直近の完了をチップで表示し、取り消し（未着手へ戻す）も置く。
- * 本当の削除は詳細パネル側に分離（ここは消化＝完了であって削除ではない）。
+ * カードをここにドロップ＝完了（status=done / completed_at 記録）＝**即アーカイブ**でボードから消える。
+ * 直近の完了をチップで表示し、取り消し（未着手へ戻す）も置く。全件は「履歴」から参照（30日で物理削除）。
  */
 export function CompleteZone({
-  doneTasks,
+  recent,
+  totalCount,
   onOpen,
   onUndo,
+  onOpenHistory,
 }: {
-  doneTasks: Task[];
+  /** 直近の完了（アーカイブ済み・完了日時の降順） */
+  recent: Task[];
+  /** 完了（アーカイブ）総数 */
+  totalCount: number;
   onOpen: (id: string) => void;
   onUndo: (id: string) => void;
+  onOpenHistory: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: DONE_ZONE_ID });
-
-  // 直近完了順（completedAt 降順）に上位のみ表示
-  const recent = [...doneTasks]
-    .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""))
-    .slice(0, RECENT_LIMIT);
+  const chips = recent.slice(0, RECENT_LIMIT);
 
   return (
     <div
@@ -42,13 +43,22 @@ export function CompleteZone({
       <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.05em] text-muted-foreground">
         <CircleCheckBig className="size-3.5" />
         完了
-        <span className="text-ink-3">{doneTasks.length}</span>
-        <span className="ml-auto font-normal text-ink-3">ここにドロップで消化</span>
+        <span className="text-ink-3">{totalCount}</span>
+        <span className="font-normal text-ink-3">ここにドロップで消化</span>
+        <button
+          type="button"
+          onClick={onOpenHistory}
+          className="ml-auto inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 font-normal text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          title="完了履歴を開く"
+        >
+          <History className="size-3.5" />
+          履歴
+        </button>
       </div>
 
-      {recent.length > 0 ? (
+      {chips.length > 0 ? (
         <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {recent.map((t) => (
+          {chips.map((t) => (
             <span
               key={t.id}
               className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary py-0.5 pr-1 pl-2 text-[11px]"

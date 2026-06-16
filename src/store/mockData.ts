@@ -1,4 +1,4 @@
-import type { Category, EventItem, Task } from "@/lib/types";
+import type { Category, EventItem, Shift, ShiftType, Task } from "@/lib/types";
 
 /**
  * プレビュー（目視チェック）用のモックデータ。
@@ -92,8 +92,9 @@ export const MOCK_TASKS: Task[] = [
     status: "done",
     position: "h",
     dueDate: null,
+    // 完了＝即アーカイブ（完了履歴に表示。30日経過で物理削除）
     completedAt: "2026-06-14T18:00:00",
-    archivedAt: null,
+    archivedAt: "2026-06-14T18:00:00",
     createdAt: "2026-06-09T09:00:00",
     updatedAt: "2026-06-14T18:00:00",
   },
@@ -140,6 +141,35 @@ export const MOCK_TASKS: Task[] = [
     archivedAt: null,
     createdAt: "2026-06-14T15:00:00",
     updatedAt: "2026-06-14T15:00:00",
+  },
+  // 完了済み（アーカイブ）— 完了履歴の目視用
+  {
+    id: "task-9",
+    categoryId: CAT_EIGYO,
+    title: "B社へ請求書送付",
+    description: "",
+    links: [],
+    status: "done",
+    position: "h",
+    dueDate: null,
+    completedAt: "2026-06-13T11:30:00",
+    archivedAt: "2026-06-13T11:30:00",
+    createdAt: "2026-06-08T09:00:00",
+    updatedAt: "2026-06-13T11:30:00",
+  },
+  {
+    id: "task-10",
+    categoryId: CAT_KEIRI,
+    title: "口座残高の確認",
+    description: "",
+    links: [],
+    status: "done",
+    position: "n",
+    dueDate: null,
+    completedAt: "2026-06-12T16:00:00",
+    archivedAt: "2026-06-12T16:00:00",
+    createdAt: "2026-06-07T09:00:00",
+    updatedAt: "2026-06-12T16:00:00",
   },
 ];
 
@@ -202,4 +232,27 @@ export const MOCK_EVENTS: EventItem[] = [
     location: "大阪支社",
     notes: null,
   },
+];
+
+// 勤務地・シフト種別のマスタ（渋谷店 / 恵比寿店 / りんご / 休み）
+const ST_SHIBUYA = "st-shibuya";
+const ST_EBISU = "st-ebisu";
+const ST_RINGO = "st-ringo";
+const ST_OFF = "st-off";
+
+export const MOCK_SHIFT_TYPES: ShiftType[] = [
+  { id: ST_SHIBUYA, name: "渋谷店", color: "#c2603f", position: "h" },
+  { id: ST_EBISU, name: "恵比寿店", color: "#4f7a6f", position: "n" },
+  { id: ST_RINGO, name: "りんご", color: "#8a6d3b", position: "t" },
+  { id: ST_OFF, name: "休み", color: "#9aa29f", position: "x" },
+];
+
+// その週のシフト割当（1日1件）
+export const MOCK_SHIFTS: Shift[] = [
+  { id: "shift-1", date: "2026-06-15", shiftTypeId: ST_SHIBUYA },
+  { id: "shift-2", date: "2026-06-16", shiftTypeId: ST_EBISU },
+  { id: "shift-3", date: "2026-06-17", shiftTypeId: ST_RINGO },
+  { id: "shift-4", date: "2026-06-18", shiftTypeId: ST_OFF },
+  { id: "shift-5", date: "2026-06-19", shiftTypeId: ST_SHIBUYA },
+  { id: "shift-6", date: "2026-06-20", shiftTypeId: ST_OFF },
 ];

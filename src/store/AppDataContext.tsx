@@ -5,21 +5,37 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { keyAfter, keyBefore, keyBetween } from "@/lib/order";
 import { toLocalIso } from "@/lib/calendar";
 import { IS_PREVIEW } from "@/lib/preview";
-import { MOCK_CATEGORIES, MOCK_EVENTS, MOCK_TASKS } from "@/store/mockData";
-import type { Category, EventItem, Task, TaskLink, TaskStatus } from "@/lib/types";
+import {
+  MOCK_CATEGORIES,
+  MOCK_EVENTS,
+  MOCK_SHIFTS,
+  MOCK_SHIFT_TYPES,
+  MOCK_TASKS,
+} from "@/store/mockData";
+import type {
+  Category,
+  EventItem,
+  Shift,
+  ShiftType,
+  Task,
+  TaskLink,
+  TaskStatus,
+} from "@/lib/types";
 
 /**
  * AppDataContext — アプリの全データソース（Supabase + TanStack Query）。
  *
  * 設計の要:
- * - 公開インターフェース（配列＋同期ミューテータ）はモック実装時から不変。
- *   コンポーネントは無改修で動く。
  * - 永続化は Supabase。RLS（owner_id = auth.uid()）で自分のデータだけが見える。
- * - 追加系（addTask / addEvent）は id を **クライアントで生成**して即座に返す。
- *   楽観的更新でドラフトをその場で開けるようにするため（DB の default gen_random_uuid()
- *   は使わず、こちらで採番した UUID を明示的に挿入する）。
- * - 表示順は `position`（fractional index）昇順。`Lane` 等は配列順をそのまま描画するため、
- *   取得時も楽観的更新時も position で並べ替えてキャッシュと DB の順序を一致させる。
+ * - 追加系（addTask / addEvent）は id を **クライアントで生成**して即座に返す
+ *   （楽観的更新でドラフトをその場で開くため）。
+ * - 表示順は `position`（fractional index）昇順。`Lane` 等は配列順をそのまま描画する。
+ *
+ * 画面構成見直し（案B / 完了即アーカイブ）:
+ * - tasks クエリは **アーカイブ済みも含む全件**を1キャッシュに保持し、active / archived を
+ *   メモ化で派生させる。完了＝`archived_at` を即セットしてボードから外し、完了履歴へ移す。
+ * - ボードは状態で列分割しない単一リスト。`doing` は「対応中フラグ」を表す（列ではない）。
+ * - 完了から PURGE_AFTER_DAYS 日経過した行は物理削除（DBからも消す）。
  */
 
 function nowIso(): string {
@@ -27,12 +43,12 @@ function nowIso(): string {
 }
 
 /**
- * 完了タスクの自動アーカイブまでの日数（仕様 §3.1 / §5.1 の N）。
- * `status = 'done'` かつ `completed_at` がこの日数より前 → `archived_at` を立ててボードから畳む。
- * 仕様の未確定事項（例: 7日）に対し v1 の既定値として 7 日を採用。
+ * 完了（アーカイブ）から物理削除までの日数。
+ * 完了ドロップで即アーカイブ（`archived_at` を立ててボードから外す）し、
+ * その後この日数を過ぎた行は完了履歴からも消えて DB からも DELETE される。
  */
-const ARCHIVE_AFTER_DAYS = 7;
-const ARCHIVE_AFTER_MS = ARCHIVE_AFTER_DAYS * 24 * 60 * 60 * 1000;
+const PURGE_AFTER_DAYS = 30;
+const PURGE_AFTER_MS = PURGE_AFTER_DAYS * 24 * 60 * 60 * 1000;
 
 function newId(): string {
   return crypto.randomUUID();
@@ -45,6 +61,11 @@ function byPosition<T extends { position: string }>(arr: T[]): T[] {
 
 function byStartAt(arr: EventItem[]): EventItem[] {
   return [...arr].sort((a, b) => (a.startAt < b.startAt ? -1 : a.startAt > b.startAt ? 1 : 0));
+}
+
+/** 完了履歴の並び: 完了日時の降順（新しい完了が先頭）。 */
+function byCompletedDesc(arr: Task[]): Task[] {
+  return [...arr].sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""));
 }
 
 // ── DB 行（snake_case）→ ドメイン型（camelCase）マッピング ──
@@ -77,6 +98,17 @@ interface EventRow {
   location: string | null;
   notes: string | null;
 }
+interface ShiftTypeRow {
+  id: string;
+  name: string;
+  color: string | null;
+  position: string;
+}
+interface ShiftRow {
+  id: string;
+  date: string;
+  shift_type_id: string;
+}
 
 function rowToCategory(r: CategoryRow): Category {
   return { id: r.id, name: r.name, position: r.position, color: r.color };
@@ -107,6 +139,12 @@ function rowToEvent(r: EventRow): EventItem {
     location: r.location,
     notes: r.notes,
   };
+}
+function rowToShiftType(r: ShiftTypeRow): ShiftType {
+  return { id: r.id, name: r.name, color: r.color, position: r.position };
+}
+function rowToShift(r: ShiftRow): Shift {
+  return { id: r.id, date: r.date, shiftTypeId: r.shift_type_id };
 }
 
 // ── ドメイン型 → DB 行（挿入・更新用） ──
@@ -173,11 +211,19 @@ function eventPatchToRow(patch: Partial<EventItem>): Record<string, unknown> {
   return row;
 }
 
+function shiftTypePatchToRow(patch: Partial<ShiftType>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  if (patch.name !== undefined) row.name = patch.name;
+  if (patch.color !== undefined) row.color = patch.color;
+  if (patch.position !== undefined) row.position = patch.position;
+  return row;
+}
+
 /**
  * updateTask 用にパッチを正規化する。
  * - updatedAt は楽観表示用に現在時刻を入れる（DB 側はトリガー）。
  * - status が変わるのに completedAt が未指定なら、完了/未完了に応じて補完する。
- *   呼び出し側が completedAt を明示している場合は尊重する（reorder/move で既存値を保つため）。
+ *   呼び出し側が completedAt を明示している場合は尊重する。
  */
 function normalizeTaskPatch(patch: Partial<Task>): Partial<Task> {
   const next: Partial<Task> = { ...patch, updatedAt: nowIso() };
@@ -194,12 +240,9 @@ async function fetchCategories(): Promise<Category[]> {
   return byPosition((data as CategoryRow[]).map(rowToCategory));
 }
 async function fetchTasks(): Promise<Task[]> {
-  // アーカイブ済みはボード・締切レーンから除外（仕様 §5.1: archived_at is null）。
-  const { data, error } = await supabase
-    .from("tasks")
-    .select("*")
-    .is("archived_at", null)
-    .order("position");
+  // アーカイブ済みも含む全件を取得し、active / archived は呼び出し側で派生する。
+  // （完了は即アーカイブ＋30日で物理削除するため、アーカイブ件数は高々30日分に収まる）
+  const { data, error } = await supabase.from("tasks").select("*").order("position");
   if (error) throw error;
   return byPosition((data as TaskRow[]).map(rowToTask));
 }
@@ -207,6 +250,16 @@ async function fetchEvents(): Promise<EventItem[]> {
   const { data, error } = await supabase.from("events").select("*").order("start_at");
   if (error) throw error;
   return byStartAt((data as EventRow[]).map(rowToEvent));
+}
+async function fetchShiftTypes(): Promise<ShiftType[]> {
+  const { data, error } = await supabase.from("shift_types").select("*").order("position");
+  if (error) throw error;
+  return byPosition((data as ShiftTypeRow[]).map(rowToShiftType));
+}
+async function fetchShifts(): Promise<Shift[]> {
+  const { data, error } = await supabase.from("shifts").select("*").order("date");
+  if (error) throw error;
+  return (data as ShiftRow[]).map(rowToShift);
 }
 
 /**
@@ -236,23 +289,24 @@ function buildOptimistic<T, V>(
 
 interface AppDataContextValue {
   categories: Category[];
+  /** ボード・締切レーン向けの非アーカイブタスク。 */
   tasks: Task[];
+  /** 完了履歴向け（アーカイブ済み）タスク。完了日時の降順。 */
+  archivedTasks: Task[];
   events: EventItem[];
+  shiftTypes: ShiftType[];
+  shifts: Shift[];
 
   // タスク（addTask は作成した id を返す＝下書きを即パネルで開くため）
   addTask: (input: { title: string; categoryId?: string | null }) => string;
   updateTask: (id: string, patch: Partial<Task>) => void;
   deleteTask: (id: string) => void;
-  /** 完了タスクをアーカイブ（ボードから畳む）。自動アーカイブ・手動アーカイブ共通。 */
-  archiveTask: (id: string) => void;
-  moveTask: (id: string, categoryId: string | null, status: TaskStatus) => void;
-  /** 並べ替え＋セル移動。beforeId の直前に挿入（null なら末尾） */
-  reorderTask: (
-    id: string,
-    categoryId: string | null,
-    status: TaskStatus,
-    beforeId: string | null
-  ) => void;
+  /** 完了＝即アーカイブ（status=done / completed_at・archived_at を立ててボードから外す）。 */
+  completeTask: (id: string) => void;
+  /** 完了の取り消し（未着手へ戻す。完了履歴・undo トーストから呼ぶ）。 */
+  uncompleteTask: (id: string) => void;
+  /** 並べ替え＋カテゴリ移動。beforeId の直前に挿入（null なら末尾）。状態は保持。 */
+  reorderTask: (id: string, categoryId: string | null, beforeId: string | null) => void;
 
   // カテゴリ
   addCategory: (name: string) => void;
@@ -264,6 +318,14 @@ interface AppDataContextValue {
   addEvent: (input: { title: string; startAt: string; endAt: string }) => string;
   updateEvent: (id: string, patch: Partial<EventItem>) => void;
   deleteEvent: (id: string) => void;
+
+  // シフト（勤務地）
+  addShiftType: (name: string) => void;
+  updateShiftType: (id: string, patch: Partial<ShiftType>) => void;
+  deleteShiftType: (id: string) => void;
+  reorderShiftType: (id: string, direction: "up" | "down") => void;
+  /** 指定日のシフトを設定（shiftTypeId=null で解除）。1日1件。 */
+  setShift: (date: string, shiftTypeId: string | null) => void;
 }
 
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
@@ -276,21 +338,21 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const categoriesKey = ["categories", userId] as const;
   const tasksKey = ["tasks", userId] as const;
   const eventsKey = ["events", userId] as const;
+  const shiftTypesKey = ["shiftTypes", userId] as const;
+  const shiftsKey = ["shifts", userId] as const;
 
   // プレビュー時はネットワークを止め、モックを初期データとして注入する。
-  // 以降のミューテーションは Supabase を呼ばずキャッシュ上だけで完結するため、
-  // 楽観的更新がそのまま「永続化」として残り、ログイン無しで全機能を触れる。
+  const { data: allTasks = [] } = useQuery({
+    queryKey: tasksKey,
+    queryFn: fetchTasks,
+    enabled: !IS_PREVIEW && !!userId,
+    initialData: IS_PREVIEW ? MOCK_TASKS : undefined,
+  });
   const { data: categories = [] } = useQuery({
     queryKey: categoriesKey,
     queryFn: fetchCategories,
     enabled: !IS_PREVIEW && !!userId,
     initialData: IS_PREVIEW ? MOCK_CATEGORIES : undefined,
-  });
-  const { data: tasks = [] } = useQuery({
-    queryKey: tasksKey,
-    queryFn: fetchTasks,
-    enabled: !IS_PREVIEW && !!userId,
-    initialData: IS_PREVIEW ? MOCK_TASKS : undefined,
   });
   const { data: events = [] } = useQuery({
     queryKey: eventsKey,
@@ -298,6 +360,25 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     enabled: !IS_PREVIEW && !!userId,
     initialData: IS_PREVIEW ? MOCK_EVENTS : undefined,
   });
+  const { data: shiftTypes = [] } = useQuery({
+    queryKey: shiftTypesKey,
+    queryFn: fetchShiftTypes,
+    enabled: !IS_PREVIEW && !!userId,
+    initialData: IS_PREVIEW ? MOCK_SHIFT_TYPES : undefined,
+  });
+  const { data: shifts = [] } = useQuery({
+    queryKey: shiftsKey,
+    queryFn: fetchShifts,
+    enabled: !IS_PREVIEW && !!userId,
+    initialData: IS_PREVIEW ? MOCK_SHIFTS : undefined,
+  });
+
+  // active（ボード・締切レーン用）と archived（完了履歴用）を派生。
+  const tasks = useMemo(() => allTasks.filter((t) => t.archivedAt === null), [allTasks]);
+  const archivedTasks = useMemo(
+    () => byCompletedDesc(allTasks.filter((t) => t.archivedAt !== null)),
+    [allTasks]
+  );
 
   function requireOwner(): string {
     if (!userId) throw new Error("未認証のため保存できません");
@@ -337,24 +418,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     ...buildOptimistic<Task, string>(qc, tasksKey, (prev, id) => prev.filter((t) => t.id !== id)),
   });
 
-  const archiveTaskMut = useMutation({
-    mutationFn: async (id: string) => {
-      if (IS_PREVIEW) return;
-      const { error } = await supabase.from("tasks").update({ archived_at: nowIso() }).eq("id", id);
-      if (error) throw error;
-    },
-    // アーカイブ＝ボードから畳む。楽観的にはキャッシュから取り除く（取得時に除外されるため）。
-    ...buildOptimistic<Task, string>(qc, tasksKey, (prev, id) => prev.filter((t) => t.id !== id)),
-  });
-
   const addTask = useCallback<AppDataContextValue["addTask"]>(
     (input) => {
       const ts = nowIso();
-      // 新規タスクはセル先頭に来るよう、対象セル（未分類×未着手）の先頭より前の position を採番。
+      // 新規タスクはカテゴリ列の先頭に来るよう、その（active）リストの先頭より前の position を採番。
       const cell = byPosition(
-        tasks.filter(
-          (t) => (t.categoryId ?? null) === (input.categoryId ?? null) && t.status === "todo"
-        )
+        tasks.filter((t) => (t.categoryId ?? null) === (input.categoryId ?? null))
       );
       const task: Task = {
         id: newId(),
@@ -390,50 +459,46 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [deleteTaskMut]
   );
 
-  const archiveTask = useCallback<AppDataContextValue["archiveTask"]>(
+  const completeTask = useCallback<AppDataContextValue["completeTask"]>(
     (id) => {
-      archiveTaskMut.mutate(id);
+      const ts = nowIso();
+      // 完了＝即アーカイブ。completedAt・archivedAt を明示して normalize の補完を抑止する。
+      updateTaskMut.mutate({
+        id,
+        patch: { status: "done", completedAt: ts, archivedAt: ts, updatedAt: ts },
+      });
     },
-    [archiveTaskMut]
+    [updateTaskMut]
   );
 
-  // 自動アーカイブ: 完了から ARCHIVE_AFTER_DAYS 日経過した done タスクを畳む。
-  // 仕様 §5.1「アプリ起動時のフィルタで簡易実装」に倣い、データ取得後（tasks 変化時）に走査する。
-  // 楽観的にキャッシュから除かれるため、同一タスクを多重にアーカイブしない。
-  // mutate は TanStack Query v5 で安定参照のため依存に含めても毎レンダーで再実行されない。
-  const archiveMutate = archiveTaskMut.mutate;
+  const uncompleteTask = useCallback<AppDataContextValue["uncompleteTask"]>(
+    (id) => {
+      updateTaskMut.mutate({
+        id,
+        patch: { status: "todo", completedAt: null, archivedAt: null, updatedAt: nowIso() },
+      });
+    },
+    [updateTaskMut]
+  );
+
+  // 物理削除 sweep: 完了（アーカイブ）から PURGE_AFTER_DAYS 日を過ぎた行を DB からも削除。
+  // tasks 取得後（archivedTasks 変化時）に走査する。delete の楽観更新でキャッシュから除かれ多重実行を防ぐ。
+  const purgeMutate = deleteTaskMut.mutate;
   useEffect(() => {
-    if (!userId) return;
+    if (!userId && !IS_PREVIEW) return;
     const now = Date.now();
-    for (const t of tasks) {
-      if (
-        t.status === "done" &&
-        t.archivedAt === null &&
-        t.completedAt !== null &&
-        now - new Date(t.completedAt).getTime() >= ARCHIVE_AFTER_MS
-      ) {
-        archiveMutate(t.id);
+    for (const t of archivedTasks) {
+      if (t.archivedAt && now - new Date(t.archivedAt).getTime() >= PURGE_AFTER_MS) {
+        purgeMutate(t.id);
       }
     }
-  }, [tasks, userId, archiveMutate]);
-
-  const moveTask = useCallback<AppDataContextValue["moveTask"]>(
-    (id, categoryId, status) => {
-      const current = tasks.find((t) => t.id === id);
-      const completedAt = status === "done" ? (current?.completedAt ?? nowIso()) : null;
-      updateTask(id, { categoryId, status, completedAt });
-    },
-    [tasks, updateTask]
-  );
+  }, [archivedTasks, userId, purgeMutate]);
 
   const reorderTask = useCallback<AppDataContextValue["reorderTask"]>(
-    (id, categoryId, status, beforeId) => {
-      // 移動先セル（自分自身を除く）を position 昇順で取り出し、挿入位置の前後から新 position を採番。
+    (id, categoryId, beforeId) => {
+      // 移動先カテゴリの active タスク（自分を除く）を position 昇順で取り出し、挿入位置から新 position を採番。
       const cell = byPosition(
-        tasks.filter(
-          (t) =>
-            (t.categoryId ?? null) === (categoryId ?? null) && t.status === status && t.id !== id
-        )
+        tasks.filter((t) => (t.categoryId ?? null) === (categoryId ?? null) && t.id !== id)
       );
       let position: string;
       if (!beforeId) {
@@ -447,9 +512,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           position = keyBetween(prev?.position ?? null, cell[idx].position);
         }
       }
-      const current = tasks.find((t) => t.id === id);
-      const completedAt = status === "done" ? (current?.completedAt ?? nowIso()) : null;
-      updateTask(id, { categoryId, status, position, completedAt });
+      // 状態（未着手/対応中フラグ）は保持。カテゴリと並び順だけ更新する。
+      updateTask(id, { categoryId, position });
     },
     [tasks, updateTask]
   );
@@ -645,16 +709,197 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [deleteEventMut]
   );
 
+  // ── シフト種別（マスタ）mutations ──
+  const addShiftTypeMut = useMutation({
+    mutationFn: async (s: ShiftType) => {
+      if (IS_PREVIEW) return;
+      const { error } = await supabase.from("shift_types").insert({
+        id: s.id,
+        owner_id: requireOwner(),
+        name: s.name,
+        color: s.color,
+        position: s.position,
+      });
+      if (error) throw error;
+    },
+    ...buildOptimistic<ShiftType, ShiftType>(qc, shiftTypesKey, (prev, s) =>
+      byPosition([...prev, s])
+    ),
+  });
+
+  const updateShiftTypeMut = useMutation({
+    mutationFn: async (vars: { id: string; patch: Partial<ShiftType> }) => {
+      if (IS_PREVIEW) return;
+      const { error } = await supabase
+        .from("shift_types")
+        .update(shiftTypePatchToRow(vars.patch))
+        .eq("id", vars.id);
+      if (error) throw error;
+    },
+    ...buildOptimistic<ShiftType, { id: string; patch: Partial<ShiftType> }>(
+      qc,
+      shiftTypesKey,
+      (prev, vars) => byPosition(prev.map((s) => (s.id === vars.id ? { ...s, ...vars.patch } : s)))
+    ),
+  });
+
+  const deleteShiftTypeMut = useMutation({
+    mutationFn: async (id: string) => {
+      if (IS_PREVIEW) return;
+      // DB は shifts を on delete cascade で消す。
+      const { error } = await supabase.from("shift_types").delete().eq("id", id);
+      if (error) throw error;
+    },
+    // shift_types と shifts の両キャッシュを楽観更新（その種別の割当も消す）。
+    onMutate: async (id: string) => {
+      await Promise.all([
+        qc.cancelQueries({ queryKey: shiftTypesKey }),
+        qc.cancelQueries({ queryKey: shiftsKey }),
+      ]);
+      const prevTypes = qc.getQueryData<ShiftType[]>(shiftTypesKey) ?? [];
+      const prevShifts = qc.getQueryData<Shift[]>(shiftsKey) ?? [];
+      qc.setQueryData<ShiftType[]>(
+        shiftTypesKey,
+        prevTypes.filter((s) => s.id !== id)
+      );
+      qc.setQueryData<Shift[]>(
+        shiftsKey,
+        prevShifts.filter((s) => s.shiftTypeId !== id)
+      );
+      return { prevTypes, prevShifts };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx) {
+        qc.setQueryData(shiftTypesKey, ctx.prevTypes);
+        qc.setQueryData(shiftsKey, ctx.prevShifts);
+      }
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: shiftTypesKey });
+      void qc.invalidateQueries({ queryKey: shiftsKey });
+    },
+  });
+
+  const addShiftType = useCallback<AppDataContextValue["addShiftType"]>(
+    (name) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const sorted = byPosition(shiftTypes);
+      const shiftType: ShiftType = {
+        id: newId(),
+        name: trimmed,
+        color: null,
+        position: keyAfter(sorted.length ? sorted[sorted.length - 1].position : null),
+      };
+      addShiftTypeMut.mutate(shiftType);
+    },
+    [addShiftTypeMut, shiftTypes]
+  );
+
+  const updateShiftType = useCallback<AppDataContextValue["updateShiftType"]>(
+    (id, patch) => {
+      updateShiftTypeMut.mutate({ id, patch });
+    },
+    [updateShiftTypeMut]
+  );
+
+  const deleteShiftType = useCallback<AppDataContextValue["deleteShiftType"]>(
+    (id) => {
+      deleteShiftTypeMut.mutate(id);
+    },
+    [deleteShiftTypeMut]
+  );
+
+  const reorderShiftType = useCallback<AppDataContextValue["reorderShiftType"]>(
+    (id, direction) => {
+      const sorted = byPosition(shiftTypes);
+      const idx = sorted.findIndex((s) => s.id === id);
+      if (idx < 0) return;
+      let position: string;
+      if (direction === "up") {
+        if (idx === 0) return;
+        const above = sorted[idx - 1];
+        const aboveAbove = idx - 2 >= 0 ? sorted[idx - 2] : null;
+        position = keyBetween(aboveAbove?.position ?? null, above.position);
+      } else {
+        if (idx === sorted.length - 1) return;
+        const below = sorted[idx + 1];
+        const belowBelow = idx + 2 < sorted.length ? sorted[idx + 2] : null;
+        position = keyBetween(below.position, belowBelow?.position ?? null);
+      }
+      updateShiftTypeMut.mutate({ id, patch: { position } });
+    },
+    [updateShiftTypeMut, shiftTypes]
+  );
+
+  // ── シフト割当 mutations ──
+  const addShiftMut = useMutation({
+    mutationFn: async (s: Shift) => {
+      if (IS_PREVIEW) return;
+      const { error } = await supabase.from("shifts").insert({
+        id: s.id,
+        owner_id: requireOwner(),
+        date: s.date,
+        shift_type_id: s.shiftTypeId,
+      });
+      if (error) throw error;
+    },
+    ...buildOptimistic<Shift, Shift>(qc, shiftsKey, (prev, s) => [...prev, s]),
+  });
+
+  const updateShiftMut = useMutation({
+    mutationFn: async (vars: { id: string; shiftTypeId: string }) => {
+      if (IS_PREVIEW) return;
+      const { error } = await supabase
+        .from("shifts")
+        .update({ shift_type_id: vars.shiftTypeId })
+        .eq("id", vars.id);
+      if (error) throw error;
+    },
+    ...buildOptimistic<Shift, { id: string; shiftTypeId: string }>(qc, shiftsKey, (prev, vars) =>
+      prev.map((s) => (s.id === vars.id ? { ...s, shiftTypeId: vars.shiftTypeId } : s))
+    ),
+  });
+
+  const deleteShiftMut = useMutation({
+    mutationFn: async (id: string) => {
+      if (IS_PREVIEW) return;
+      const { error } = await supabase.from("shifts").delete().eq("id", id);
+      if (error) throw error;
+    },
+    ...buildOptimistic<Shift, string>(qc, shiftsKey, (prev, id) => prev.filter((s) => s.id !== id)),
+  });
+
+  const setShift = useCallback<AppDataContextValue["setShift"]>(
+    (date, shiftTypeId) => {
+      const existing = shifts.find((s) => s.date === date);
+      if (shiftTypeId === null) {
+        if (existing) deleteShiftMut.mutate(existing.id);
+        return;
+      }
+      if (existing) {
+        if (existing.shiftTypeId !== shiftTypeId)
+          updateShiftMut.mutate({ id: existing.id, shiftTypeId });
+      } else {
+        addShiftMut.mutate({ id: newId(), date, shiftTypeId });
+      }
+    },
+    [shifts, addShiftMut, updateShiftMut, deleteShiftMut]
+  );
+
   const value = useMemo<AppDataContextValue>(
     () => ({
       categories,
       tasks,
+      archivedTasks,
       events,
+      shiftTypes,
+      shifts,
       addTask,
       updateTask,
       deleteTask,
-      archiveTask,
-      moveTask,
+      completeTask,
+      uncompleteTask,
       reorderTask,
       addCategory,
       renameCategory,
@@ -663,16 +908,24 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addEvent,
       updateEvent,
       deleteEvent,
+      addShiftType,
+      updateShiftType,
+      deleteShiftType,
+      reorderShiftType,
+      setShift,
     }),
     [
       categories,
       tasks,
+      archivedTasks,
       events,
+      shiftTypes,
+      shifts,
       addTask,
       updateTask,
       deleteTask,
-      archiveTask,
-      moveTask,
+      completeTask,
+      uncompleteTask,
       reorderTask,
       addCategory,
       renameCategory,
@@ -681,6 +934,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addEvent,
       updateEvent,
       deleteEvent,
+      addShiftType,
+      updateShiftType,
+      deleteShiftType,
+      reorderShiftType,
+      setShift,
     ]
   );
 
