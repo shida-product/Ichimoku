@@ -2,6 +2,18 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-16] 配色調整ポータルを開発環境（DEV）に内蔵 ＋ 検討用モックを削除
+
+- **判断背景**:
+  - 機能開発と色味調整を**同じ画面で並行**したい要望。静的モック（`design-explorations/`）への往復をやめ、稼働中アプリ上で index.css トークンを直接いじれる方がワークフローが速い。
+  - 「公開時にはポータルを含めない」ことが要件。
+- **変更点**:
+  - `src/features/devtools/ColorTuner.tsx`（新規）: index.css と同名トークンを 1:1 調整する開発用パネル。初期値は `getComputedStyle(:root)` で index.css から読む（二重管理なし）。編集は `documentElement` の CSS 変数を上書きしてアプリ全体へ即反映、派生トークンも連動。localStorage 保持（未編集の基準値は保存しない）・「index.css に戻す」・`:root` ブロック出力＆コピー付き。
+  - `src/components/layout/AppShell.tsx`: 末尾に `{import.meta.env.DEV && <ColorTuner />}`。**DEV のみ描画＝本番ビルドでは tree-shake**。`npm run build` 出力を固有文字列で全文検索し含まれないことを確認済み。
+  - 役目を終えた `design-explorations/`（A-quiet/B-warm/C-hud/index ＋ v1.4-brushup/v1.4-tuner）を削除。index.css・handover の参照を ColorTuner に張り替え。
+- **検証状況**: `tsc -b` / `npm run lint`（0 error・既存 react-refresh 警告のみ）/ `npm run build` 成功・バンドルにポータル痕跡なしを確認。
+- **残課題**: コミットは AppShell に別作業（予定パネル保存ボタン式化）の未コミット変更が同居するため保留＝ユーザー判断待ち。
+
 ## [2026-06-16] 配色ブラッシュアップ「案1 ウォーム・コントラスト強化」を正式採用
 
 - **判断背景**:

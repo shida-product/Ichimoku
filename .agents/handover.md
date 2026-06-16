@@ -19,7 +19,9 @@
 
 ## Current Focus
 
-**配色「案1 ウォーム・コントラスト強化」を正式採用（本セッション 2026-06-16）**: 「淡くて見づらい」解消のため、クリーム×テラコッタの個性は維持したまま文字インク・罫線・くぼみ面・面の段差を一段濃く。`src/index.css` のトークン値のみ差し替え（**コンポーネント無改修**）＋ `docs/design.md` のカラー表/角丸/配色記述を実体に同期。主な変更: `--background #f3eee3→#f1e9d7`／`--foreground #33302a→#2a2620`／`--muted-foreground #6f685c→#585044`／`--ink-3 #a39a89→#8a8070`／`--border #e3dccb→#d8cdb6`／`--input #d6cdb8→#c4b89c`／`--primary #b2542f→#a8482a`／`--card→#fdfaf2`／`--secondary→#ece3d0`／crit/warn も同系で深め。検討用に `design-explorations/v1.4-brushup.html`（現状＋3案＋書体比較）と `design-explorations/v1.4-tuner.html`（本番トークンを 1:1 で実機調整＋index.css 出力するポータル）を新設。ESLint 0 error・Prettier 通過。実機目視で最終確認推奨。
+**配色「案1 ウォーム・コントラスト強化」を正式採用（本セッション 2026-06-16）**: 「淡くて見づらい」解消のため、クリーム×テラコッタの個性は維持したまま文字インク・罫線・くぼみ面・面の段差を一段濃く。`src/index.css` のトークン値のみ差し替え（**コンポーネント無改修**）＋ `docs/design.md` のカラー表/角丸/配色記述を実体に同期。主な変更: `--background #f3eee3→#f1e9d7`／`--foreground #33302a→#2a2620`／`--muted-foreground #6f685c→#585044`／`--ink-3 #a39a89→#8a8070`／`--border #e3dccb→#d8cdb6`／`--input #d6cdb8→#c4b89c`／`--primary #b2542f→#a8482a`／`--card→#fdfaf2`／`--secondary→#ece3d0`／crit/warn も同系で深め。検討は開発用パネル `ColorTuner`（下記）で行う方針に統一（比較用の `design-explorations/` モック群は不要になり削除済み）。ESLint 0 error・Prettier 通過。実機目視で最終確認推奨。
+
+**実機（プレビュー）に配色調整ポータルを組込み（本セッション 2026-06-16）**: 機能開発と色味調整を並行できるよう、稼働中アプリに `src/features/devtools/ColorTuner.tsx`（新規）を追加。`AppShell` 末尾で `{import.meta.env.DEV && <ColorTuner />}` ゲート＝**DEV のみ表示・本番は tree-shake**。左下 🎨 ボタンで左ドロワー展開。初期値は `getComputedStyle(:root)` で **index.css 自身から読む**（値の二重管理なし）。トークン編集→`document.documentElement` の CSS 変数を上書きしてアプリ全体に即反映（派生 `--popover`/`--ring`/`--muted`/`--destructive` 連動）。localStorage 保持（**未編集の基準値は保存せず index.css 改訂に追従**）／「index.css に戻す」／`:root` ブロック生成＆コピー付き。tsc・ESLint 0 error・Prettier 通過。⚠ **未コミット**: `ColorTuner.tsx`（新規）と `AppShell.tsx`（2行追記）。AppShell には別作業（予定パネルの保存ボタン式化）の未コミット変更も載っているため、関心事分離の観点でコミットは保留＝ユーザー判断待ち。
 
 **画面構成の見直し（v1.4 / ADR-0001）実装済み・実機目視チェック待ち（本セッション 2026-06-16）**: ユーザーと論点整理のうえ、4点を一括実装。型チェック・ESLint（0 error）・`npm run build`・prettier 通過。プレビュー（未ログイン）で目視可。
 
@@ -103,7 +105,7 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 - **リポジトリ**: `https://github.com/shida-product/Ichimoku.git`（メインブランチ: `main`）
 - **仕様の正本**: `task-board-spec-v1.md` (v1.3 技術確定版)
 - **操作モデルの正**: `prototype-overlay.html`
-- **デザイン正本**: 配色・余白・角丸の実体は `src/index.css`（**案B「温かみ」＝クリーム地/テラコッタ準拠**の統一トークン。角丸 0.5rem、タスクカードは `--shadow-card` で軽い影＋左色ストライプなしのフラット）。比較検討した 3 案は `design-explorations/`（採用＝B-warm.html）。使い方は `docs/design.md`。**コンポーネントに生の 16 進値や `zinc-*` 等を直書きせず、必ずセマンティックトークン経由**。中央モーダル封印・保存ボタン禁止（自動保存）・オーバーレイは常に 1 枚。
+- **デザイン正本**: 配色・余白・角丸の実体は `src/index.css`（**案B「温かみ」＝クリーム地/テラコッタ準拠**の統一トークン。角丸 0.5rem、タスクカードは `--shadow-card` で軽い影＋左色ストライプなしのフラット）。配色の試行は開発用パネル `ColorTuner`（`src/features/devtools/ColorTuner.tsx`・DEV のみ）で行う。使い方は `docs/design.md`。**コンポーネントに生の 16 進値や `zinc-*` 等を直書きせず、必ずセマンティックトークン経由**。中央モーダル封印・保存ボタン禁止（自動保存）・オーバーレイは常に 1 枚。
 - **技術スタック**: Vite 8 + React 19 + TypeScript + Tailwind CSS v4（Viteプラグイン `@tailwindcss/vite` 方式）
 - **認証/セキュリティ**: Supabase Auth ＋ Postgres RLSポリシー (`using (auth.uid() = owner_id)`) による個人専用の隔離（新規ユーザー登録で自動適用）。
 - **カレンダー方式**: 自作カレンダー UI を正とし、そこに **Google Calendar API（双方向・読み書き / scope `calendar.events`）** で取得した予定をマージする。iframe 埋め込みは却下。OAuth は既存 Supabase Auth に Google プロバイダを相乗り（ID/シークレットは Supabase 管理画面で保持、コード/.env に置かない）。設定手順は `docs/google-calendar-setup.md`。利用料無料・テストユーザー枠は審査不要。実装は自作カレンダー UI の器が立ってから。
