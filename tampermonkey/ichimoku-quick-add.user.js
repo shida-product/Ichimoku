@@ -24,11 +24,18 @@
   //     Project Settings > API から取得する。
   //   - anon key は「公開前提」のキー（RLS で守られる）なのでここに書いてよい。
   //   - service_role キーやパスワードは絶対に書かない。
+  //   - APP_URL は Ichimoku 本体アプリの URL（任意）。連携が無いときの誘導リンク用。
   //   - 自前ホスト等で *.supabase.co 以外を使う場合は、上の @connect も
   //     そのドメインに合わせて追記する。
+  // -------------------------------------------------------------------------
+  // 認証方針: 第三者ページではパスワードを入力させない。本体アプリ（信頼でき
+  //   るオリジン）にログイン済みの Supabase セッションをこのスクリプトが読み取り、
+  //   GM ストレージ経由で全サイトのクイック追加に共有する。トークンは refresh
+  //   トークンで自動更新する（パスワードは扱わない）。
   // =========================================================================
   const SUPABASE_URL = "https://your-project.supabase.co";
   const SUPABASE_ANON_KEY = "your-supabase-anon-key";
+  const APP_URL = ""; // 例: "https://ichimoku.example.com" / "http://localhost:5173"
 
   const CONFIGURED =
     !SUPABASE_URL.includes("your-project") &&
@@ -99,23 +106,30 @@
   }
 
   // ---- 認証 ------------------------------------------------------------------
-  async function login(email, password) {
-    const res = await gmRequest(
-      "POST",
-      SUPABASE_URL + "/auth/v1/token?grant_type=password",
-      { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
-      { email: email, password: password }
-    );
-    const d = res.json || {};
-    const session = {
-      access_token: d.access_token,
-      refresh_token: d.refresh_token,
-      expires_at: Math.floor(Date.now() / 1000) + (d.expires_in || 3600),
-      user_id: d.user && d.user.id,
-      email: d.user && d.user.email,
-    };
-    saveSession(session);
-    return session;
+  // 本体アプリのオリジンでだけ存在する localStorage のセッションを読み取り、
+  // GM ストレージへ同期する。これにより第三者ページではパスワードを扱わずに
+  // クイック追加できる。（第三者ページにはこのキーは存在しないので何もしない）
+  function syncSessionFromApp() {
+    try {
+      const ref = new URL(SUPABASE_URL).hostname.split(".")[0];
+      const raw = window.localStorage.getItem("sb-" + ref + "-auth-token");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      // supabase-js v2 は session を直接、v1 は { currentSession } で保持する
+      const d = (parsed && parsed.currentSession) || parsed;
+      if (!d || !d.access_token) return;
+      const session = {
+        access_token: d.access_token,
+        refresh_token: d.refresh_token,
+        expires_at: d.expires_at || Math.floor(Date.now() / 1000) + (d.expires_in || 3600),
+        user_id: d.user && d.user.id,
+        email: d.user && d.user.email,
+      };
+      const cur = loadSession();
+      if (!cur || cur.access_token !== session.access_token) saveSession(session);
+    } catch (e) {
+      /* localStorage 不可 / 形式違いは無視 */
+    }
   }
 
   async function refresh(session) {
@@ -333,37 +347,26 @@
         title.focus();
       }, 60);
     } else {
+      // 連携なし: 第三者ページではパスワードを扱わない。本体アプリで
+      // ログイン → そのタブをこのスクリプトが拾ってセッションを共有する。
       panel.innerHTML =
-        '<p class="ttl">Ichimoku にログイン</p>' +
-        '<p class="muted">初回だけログインします。以後はこの端末に保持されます。</p>' +
-        '<input id="email" type="email" placeholder="メールアドレス" autocomplete="username" />' +
-        '<input id="password" type="password" placeholder="パスワード" autocomplete="current-password" />' +
-        '<button class="btn" id="loginBtn">ログイン</button>' +
-        '<div class="err" id="err"></div>';
-      const email = root.getElementById("email");
-      const password = root.getElementById("password");
-      const btn = root.getElementById("loginBtn");
-      const err = root.getElementById("err");
-      async function doLogin() {
-        if (!email.value.trim() || !password.value) return;
-        btn.disabled = true;
-        err.textContent = "";
-        try {
-          await login(email.value.trim(), password.value);
-          renderPanel();
-        } catch (ex) {
-          btn.disabled = false;
-          err.textContent = "ログイン失敗: " + ex.message;
-        }
+        '<p class="ttl">本体アプリでログインしてください</p>' +
+        '<p class="muted">安全のため、ここではパスワードを入力しません。' +
+        "Ichimoku 本体アプリにログイン済みのタブを開くと、自動で連携されます。</p>" +
+        (APP_URL
+          ? '<button class="btn" id="openApp">Ichimoku を開く</button>'
+          : "") +
+        '<div class="row"><span class="hint"></span>' +
+        '<button class="link" id="recheck">連携を再確認</button></div>';
+      if (APP_URL) {
+        root.getElementById("openApp").addEventListener("click", function () {
+          window.open(APP_URL, "_blank", "noopener");
+        });
       }
-      btn.addEventListener("click", doLogin);
-      password.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") doLogin();
-        if (e.key === "Escape") closePanel();
+      root.getElementById("recheck").addEventListener("click", function () {
+        syncSessionFromApp();
+        renderPanel();
       });
-      setTimeout(function () {
-        email.focus();
-      }, 60);
     }
   }
 
@@ -444,6 +447,9 @@
       if (!open) openPanel();
     });
   }
+
+  // 本体アプリのオリジンならログイン済みセッションを拾って全サイトへ共有する
+  syncSessionFromApp();
 
   applyTabPos();
 })();
