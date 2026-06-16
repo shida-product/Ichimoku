@@ -1,6 +1,9 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Star } from "lucide-react";
 import type { Task } from "@/lib/types";
+import { isFlagged } from "@/lib/types";
+import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
 import { dueUrgency, formatMd, urgencyClasses } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -22,39 +25,70 @@ export function DueChip({ dueDate }: { dueDate: string }) {
   );
 }
 
-/** ボード上のタスクカード（フラット・ドラッグ可能・クリックで詳細） */
+/**
+ * ボード上のタスクカード（フラット・ドラッグ可能・クリックで詳細）。
+ * 「対応中」は★フラグ（status=doing）で表す。★クリックでトグル（ドラッグ・詳細起動と分離）。
+ */
 export function TaskCard({ task, showMemo }: { task: Task; showMemo: boolean }) {
   const { openTask } = useOverlay();
+  const { updateTask } = useAppData();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
-  const done = task.status === "done";
+  const flagged = isFlagged(task.status);
   const memo = task.description.trim();
 
+  const toggleFlag = () => updateTask(task.id, { status: flagged ? "todo" : "doing" });
+
   return (
-    <button
+    <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       {...listeners}
+      role="button"
+      tabIndex={0}
       onClick={() => openTask(task.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openTask(task.id);
+        }
+      }}
       className={cn(
-        "flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border border-border bg-card p-2.5 text-left shadow-[var(--shadow-card)] transition-[border-color,box-shadow] hover:border-input hover:shadow-[var(--shadow-card-hover)]",
-        done && "opacity-55",
+        "flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border bg-card p-2.5 text-left shadow-[var(--shadow-card)] transition-[border-color,box-shadow] hover:shadow-[var(--shadow-card-hover)]",
+        flagged ? "border-primary/45 ring-1 ring-primary/20" : "border-border hover:border-input",
         isDragging && "opacity-40"
       )}
     >
-      <span
-        className={cn("text-[13px] leading-snug", done && "text-muted-foreground line-through")}
-      >
-        {task.title}
-      </span>
+      <div className="flex items-start gap-1.5">
+        <span className="min-w-0 flex-1 text-[13px] leading-snug">{task.title}</span>
+        <button
+          type="button"
+          aria-label={flagged ? "対応中を解除" : "対応中にする"}
+          aria-pressed={flagged}
+          title={flagged ? "対応中を解除" : "対応中にする"}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFlag();
+          }}
+          className={cn(
+            "-mt-0.5 -mr-0.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded transition-colors",
+            flagged
+              ? "text-primary hover:bg-primary/10"
+              : "text-ink-3/50 hover:bg-secondary hover:text-foreground"
+          )}
+        >
+          <Star className={cn("size-3.5", flagged && "fill-current")} />
+        </button>
+      </div>
       {showMemo && memo ? (
         <p className="line-clamp-2 text-[11px] leading-snug whitespace-pre-wrap text-muted-foreground">
           {memo}
         </p>
       ) : null}
       {task.dueDate ? <DueChip dueDate={task.dueDate} /> : null}
-    </button>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
-import { Archive, Plus, Trash2, X } from "lucide-react";
+import { Plus, Star, Trash2, Undo2, X } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
-import { STATUS_LABEL, STATUS_ORDER, type TaskLink } from "@/lib/types";
+import { isFlagged, type TaskLink } from "@/lib/types";
 import { PanelShell, fieldClass, useSavedFlash } from "@/features/_shared/panel";
 
 function fmtDateTime(iso: string): string {
@@ -15,11 +15,15 @@ function fmtDateTime(iso: string): string {
  * 追加も既存編集も同じこのパネルで行う。
  */
 export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: () => void }) {
-  const { tasks, categories, updateTask, deleteTask, archiveTask } = useAppData();
+  const { tasks, archivedTasks, categories, updateTask, deleteTask, uncompleteTask } = useAppData();
   const { saved, flash } = useSavedFlash();
-  const task = tasks.find((t) => t.id === taskId);
+  // 詳細は active / archived（完了履歴）の両方から開かれる。
+  const task = tasks.find((t) => t.id === taskId) ?? archivedTasks.find((t) => t.id === taskId);
 
   if (!task) return null;
+
+  const done = task.status === "done";
+  const flagged = isFlagged(task.status);
 
   const patch = (p: Parameters<typeof updateTask>[1]) => {
     updateTask(task.id, p);
@@ -39,17 +43,17 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
         作成 {fmtDateTime(task.createdAt)} ・ 更新 {fmtDateTime(task.updatedAt)}
       </span>
       <div className="flex items-center gap-3">
-        {/* 完了タスクは手動アーカイブ可（自動アーカイブは完了から7日後） */}
-        {task.status === "done" ? (
+        {/* 完了タスク（完了履歴から開いた場合）は未着手へ戻せる */}
+        {done ? (
           <button
             type="button"
             onClick={() => {
-              archiveTask(task.id);
+              uncompleteTask(task.id);
               onClose();
             }}
             className="inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground hover:underline"
           >
-            <Archive className="size-3.5" /> アーカイブ
+            <Undo2 className="size-3.5" /> 未着手へ戻す
           </button>
         ) : null}
         <button
@@ -149,38 +153,43 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
         )}
       </div>
 
-      {/* カテゴリ / 状態 */}
-      <div className="flex gap-3">
-        <label className="flex-1">
-          <span className="mb-1.5 block text-xs text-muted-foreground">カテゴリ</span>
-          <select
-            value={task.categoryId ?? ""}
-            onChange={(e) => patch({ categoryId: e.target.value || null })}
-            className={fieldClass}
-          >
-            <option value="">未分類</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex-1">
-          <span className="mb-1.5 block text-xs text-muted-foreground">状態</span>
-          <select
-            value={task.status}
-            onChange={(e) => patch({ status: e.target.value as typeof task.status })}
-            className={fieldClass}
-          >
-            {STATUS_ORDER.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      {/* カテゴリ */}
+      <label className="block">
+        <span className="mb-1.5 block text-xs text-muted-foreground">カテゴリ</span>
+        <select
+          value={task.categoryId ?? ""}
+          onChange={(e) => patch({ categoryId: e.target.value || null })}
+          className={fieldClass}
+        >
+          <option value="">未分類</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {/* 対応中フラグ（状態列の代わり。完了タスクでは表示しない） */}
+      {done ? (
+        <p className="inline-flex w-fit items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1.5 text-[12px] text-muted-foreground">
+          完了済み（完了履歴に保存中）
+        </p>
+      ) : (
+        <button
+          type="button"
+          aria-pressed={flagged}
+          onClick={() => patch({ status: flagged ? "todo" : "doing" })}
+          className={`inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[13px] transition-colors ${
+            flagged
+              ? "border-primary/45 bg-primary/10 text-primary"
+              : "border-input text-muted-foreground hover:bg-secondary hover:text-foreground"
+          }`}
+        >
+          <Star className={`size-3.5 ${flagged ? "fill-current" : ""}`} />
+          {flagged ? "対応中" : "対応中にする"}
+        </button>
+      )}
     </PanelShell>
   );
 }

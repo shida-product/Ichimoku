@@ -2,6 +2,26 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-16] 画面構成の見直し（v1.4 / ADR-0001）— ボード単一リスト・完了即アーカイブ・カレンダー無限スクロール・シフト追加
+
+- **判断背景**:
+  - 「整理せず消化する」ゴールに対し、状態列（未着手/対応中）・7日アーカイブ・週/日時間グリッドが摩擦になっていた。ユーザーと論点整理し4点を確定（案B・物理削除・日表示廃止・1日1シフト・マスタ管理・繰り返し無し）。
+- **決定**（詳細は `docs/adr/0001-board-and-calendar-layout-rework.md`）:
+  1. ボードはカテゴリ単位の単一リスト。「対応中」は★フラグ（`doing`）。`position` をカテゴリ単位へ。
+  2. 完了＝即アーカイブ（`completed_at`+`archived_at` 同時記録）。完了履歴 side-peek＋undo トースト。30日で物理削除。
+  3. カレンダーは無限スクロール アジェンダに一本化（`TimeGrid`/`WeekAgenda` 削除）。
+  4. シフト（勤務地）を予定とは別テーブル（`shift_types`＋`shifts` 1日1件）で新設。
+- **変更点**:
+  - データ層 `src/store/AppDataContext.tsx`: `fetchTasks` を全件取得に変更し active/archived を派生。`completeTask`/`uncompleteTask`・30日 purge sweep・shift CRUD・`setShift` 追加。`archiveTask`/`moveTask`/7日自動アーカイブ撤去。
+  - ボード: `Board`/`Lane`/`BoardCell`/`TaskCard`（★）/`CompleteZone`（履歴導線）/`UndoToast`（新規）。`types.ts` は `WORKING_STATUSES` 撤去・`isFlagged`/`ShiftType`/`Shift` 追加。
+  - 完了履歴: `src/features/tasks/CompletedHistory.tsx`（新規）。詳細パネルは状態 select →★トグル＋未着手へ戻すに変更。
+  - カレンダー: `src/features/calendar/Agenda.tsx`（新規・無限スクロール）。`Calendar.tsx` 刷新。`TimeGrid.tsx`/`WeekAgenda.tsx` 削除。
+  - シフト: `src/features/shifts/`（`ShiftChip`/`ShiftManager`/`shiftColors`・新規）。マイグレーション `supabase/migrations/20260616000000_shifts.sql`（RLS 込み・新規）。
+  - 状態/オーバーレイ: `OverlayContext` に `history`/`shiftTypes` kind、`AppShell` で出し分け。`mockData.ts` に archived 2件・shift_types 4・shifts 6 追加。
+  - 仕様: `task-board-spec-v1.md` を v1.4 化（§3.3/§3.5/§3.8/§5.2/§5.3/§7/§10）。
+- **検証状況**: `tsc -b`（0 error）/ `npm run lint`（既存 react-refresh 警告のみ・0 error）/ `npm run build` / `prettier` 通過。プレビュー目視可。**実 DB（新テーブル migration 適用＋CRUD）は未検証**。
+- **残課題**: 実 DB での migration 適用と shift・完了即アーカイブ/30日削除の動作確認（handover Next Actions #5・#8）。
+
 ## [2026-06-16] プレビュー目視用モック復活 ＋ UI 改修（週アジェンダ・ボード罫線・完了プール）
 
 - **判断背景**:

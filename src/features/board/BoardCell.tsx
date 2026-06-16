@@ -2,26 +2,28 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
 
-/** セル ID 生成: `${カテゴリキー}__${状態}`（カテゴリキー uncat = 未分類） */
-export function cellId(categoryKey: string, status: string): string {
-  return `${categoryKey}__${status}`;
+/**
+ * セル ID 生成: `${カテゴリキー}__cell`（カテゴリキー uncat = 未分類）。
+ * 画面構成見直しで状態列を廃止したため、ドロップ先はカテゴリ単位の単一リスト。
+ * カード id（UUID）と衝突しないよう `__cell` を付ける。
+ */
+export function cellId(categoryKey: string): string {
+  return `${categoryKey}__cell`;
 }
 
-export function parseCellId(id: string): { categoryKey: string; status: string } {
-  const [categoryKey, status] = id.split("__");
-  return { categoryKey, status };
+export function parseCellId(id: string): { categoryKey: string } {
+  const [categoryKey] = id.split("__");
+  return { categoryKey };
 }
 
-/** ドロップ先となる (カテゴリ × 状態) のセル */
+/** ドロップ先となるカテゴリのリスト領域 */
 export function BoardCell({
   id,
-  isDone,
   children,
   isEmpty,
   itemIds,
 }: {
   id: string;
-  isDone: boolean;
   children: React.ReactNode;
   isEmpty: boolean;
   /** このセル内のタスク id（並べ替え順） */
@@ -33,7 +35,6 @@ export function BoardCell({
       ref={setNodeRef}
       className={cn(
         "flex min-h-[44px] flex-col gap-1.5 rounded-md p-1.5 transition-colors",
-        isDone && "bg-secondary",
         isOver && "bg-accent ring-2 ring-primary/40"
       )}
     >

@@ -1,0 +1,239 @@
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ChevronUp, Plus } from "lucide-react";
+import type { EventItem, Shift, ShiftType } from "@/lib/types";
+import {
+  addDays,
+  dateAtMinutes,
+  formatTime,
+  parseIso,
+  toLocalIso,
+  weekdayLabel,
+  ymd,
+} from "@/lib/calendar";
+import { parseDate } from "@/lib/date";
+import { ShiftChip } from "@/features/shifts/ShiftChip";
+import { cn } from "@/lib/utils";
+
+/** 初期に表示する過去/未来の日数（今日を基準とした相対オフセット） */
+const INITIAL_PAST = 2;
+const INITIAL_FUTURE = 21;
+/** スクロール端で継ぎ足す日数 */
+const PAGE = 14;
+
+export interface AgendaProps {
+  events: EventItem[];
+  shiftTypes: ShiftType[];
+  shifts: Shift[];
+  /** 「今日」とみなす日付（'YYYY-MM-DD'） */
+  todayYmd: string;
+  onOpenEvent: (id: string) => void;
+  onCreateAt: (startIso: string, endIso: string) => void;
+  onSetShift: (date: string, shiftTypeId: string | null) => void;
+  onManageShifts: () => void;
+}
+
+/**
+ * カレンダー本体（無限スクロールのアジェンダ）。
+ * 日付セクションを縦に連続して並べ、未来方向はスクロールで自動継ぎ足し、
+ * 過去方向は先頭の「前を表示」で読み込む（スクロール位置は補正）。
+ * 各日の見出しにシフト（勤務地）チップを置く。予定とシフトは別概念。
+ */
+export function Agenda({
+  events,
+  shiftTypes,
+  shifts,
+  todayYmd,
+  onOpenEvent,
+  onCreateAt,
+  onSetShift,
+  onManageShifts,
+}: AgendaProps) {
+  const base = parseDate(todayYmd); // 今日 0:00
+  const [startOffset, setStartOffset] = useState(-INITIAL_PAST);
+  const [endOffset, setEndOffset] = useState(INITIAL_FUTURE);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const todayRef = useRef<HTMLLIElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  // 過去を継ぎ足したときにスクロール位置を保つための補正情報
+  const prependRef = useRef<{ prevHeight: number; prevTop: number } | null>(null);
+
+  const shiftByDate = (dy: string) => shifts.find((s) => s.date === dy)?.shiftTypeId ?? null;
+
+  // 初回マウントで「今日」を先頭付近へスクロール
+  useLayoutEffect(() => {
+    todayRef.current?.scrollIntoView({ block: "start" });
+  }, []);
+
+  // 過去継ぎ足し後にスクロール位置を補正（増えた高さ分だけ下げる）
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const info = prependRef.current;
+    if (el && info) {
+      el.scrollTop = info.prevTop + (el.scrollHeight - info.prevHeight);
+      prependRef.current = null;
+    }
+  }, [startOffset]);
+
+  const loadPast = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) prependRef.current = { prevHeight: el.scrollHeight, prevTop: el.scrollTop };
+    setStartOffset((o) => o - PAGE);
+  }, []);
+
+  // 未来方向の無限スクロール（最下部センチネルが見えたら継ぎ足す）
+  useEffect(() => {
+    const sentinel = bottomRef.current;
+    const root = scrollRef.current;
+    if (!sentinel || !root) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setEndOffset((o) => o + PAGE);
+      },
+      { root, rootMargin: "200px" }
+    );
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, []);
+
+  const days: Date[] = [];
+  for (let o = startOffset; o <= endOffset; o++) days.push(addDays(base, o));
+
+  return (
+    <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
+      {/* 過去を読み込む */}
+      <button
+        type="button"
+        onClick={loadPast}
+        className="flex w-full cursor-pointer items-center justify-center gap-1 py-2 text-[12px] text-muted-foreground transition-colors hover:bg-accent"
+      >
+        <ChevronUp className="size-3.5" />
+        前を表示
+      </button>
+
+      <ul className="divide-y divide-border">
+        {days.map((day, di) => {
+          const dy = ymd(day);
+          const isToday = dy === todayYmd;
+          const prev = di > 0 ? days[di - 1] : null;
+          const showMonth = !prev || prev.getMonth() !== day.getMonth();
+
+          const ofDay = events.filter((e) => ymd(parseIso(e.startAt)) === dy);
+          const allDay = ofDay.filter((e) => e.allDay);
+          const timed = ofDay
+            .filter((e) => !e.allDay)
+            .sort((a, b) => (a.startAt < b.startAt ? -1 : a.startAt > b.startAt ? 1 : 0));
+          const count = allDay.length + timed.length;
+
+          return (
+            <li key={dy} ref={isToday ? todayRef : undefined}>
+              {showMonth ? (
+                <div className="sticky top-0 z-10 bg-secondary/95 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur">
+                  {day.getFullYear()}年{day.getMonth() + 1}月
+                </div>
+              ) : null}
+
+              <div className="flex gap-3 px-3 py-2">
+                {/* 日付列 */}
+                <div className="flex w-11 shrink-0 flex-col items-center gap-0.5 pt-0.5 select-none">
+                  <span className={cn("text-[11px]", isToday ? "text-primary" : "text-ink-3")}>
+                    {weekdayLabel(day)}
+                  </span>
+                  <span
+                    className={cn(
+                      "flex size-7 items-center justify-center rounded-full text-[14px] font-semibold tabular",
+                      isToday ? "bg-primary text-primary-foreground" : "text-foreground"
+                    )}
+                  >
+                    {day.getDate()}
+                  </span>
+                </div>
+
+                {/* 内容（シフト＋予定） */}
+                <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
+                  {/* シフト＋予定追加 */}
+                  <div className="flex items-center gap-2">
+                    <ShiftChip
+                      shiftTypes={shiftTypes}
+                      currentId={shiftByDate(dy)}
+                      onSelect={(id) => onSetShift(dy, id)}
+                      onManage={onManageShifts}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onCreateAt(
+                          toLocalIso(dateAtMinutes(day, 9 * 60)),
+                          toLocalIso(dateAtMinutes(day, 10 * 60))
+                        )
+                      }
+                      className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent"
+                      aria-label={`${day.getMonth() + 1}/${day.getDate()} に予定を追加`}
+                      title="予定を追加"
+                    >
+                      <Plus className="size-4" />
+                    </button>
+                  </div>
+
+                  {/* 予定リスト */}
+                  {count === 0 ? (
+                    <span className="py-0.5 text-[12px] text-ink-3">予定なし</span>
+                  ) : (
+                    <>
+                      {allDay.map((e) => (
+                        <button
+                          key={e.id}
+                          type="button"
+                          onClick={() => onOpenEvent(e.id)}
+                          className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
+                        >
+                          <span className="mt-px w-1 shrink-0 self-stretch rounded-full bg-muted-foreground/40" />
+                          <span className="w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
+                            終日
+                          </span>
+                          <span className="min-w-0 flex-1 truncate pt-px text-[13px] font-medium">
+                            {e.title || "（無題）"}
+                          </span>
+                        </button>
+                      ))}
+                      {timed.map((e) => {
+                        const s = parseIso(e.startAt);
+                        const en = parseIso(e.endAt);
+                        return (
+                          <button
+                            key={e.id}
+                            type="button"
+                            onClick={() => onOpenEvent(e.id)}
+                            className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
+                          >
+                            <span className="mt-px w-1 shrink-0 self-stretch rounded-full bg-primary/50" />
+                            <span className="w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
+                              {formatTime(s)}～{formatTime(en)}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[13px] font-medium">
+                                {e.title || "（無題）"}
+                              </span>
+                              {e.location ? (
+                                <span className="block truncate text-[11px] text-muted-foreground">
+                                  {e.location}
+                                </span>
+                              ) : null}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* 未来方向の無限スクロール用センチネル */}
+      <div ref={bottomRef} className="h-1" />
+    </div>
+  );
+}

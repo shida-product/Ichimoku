@@ -1,56 +1,34 @@
 import { useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarDays, MapPin, Plus } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
 import { APP_TODAY, parseDate } from "@/lib/date";
-import {
-  addDays,
-  dateAtMinutes,
-  formatMonthDay,
-  startOfDay,
-  toLocalIso,
-  weekDays,
-  weekdayLabel,
-  ymd,
-} from "@/lib/calendar";
-import { cn } from "@/lib/utils";
+import { dateAtMinutes, startOfDay, toLocalIso, ymd } from "@/lib/calendar";
 import { Button } from "@/components/ui/button";
-import { TimeGrid } from "@/features/calendar/TimeGrid";
-import { WeekAgenda } from "@/features/calendar/WeekAgenda";
-
-type View = "week" | "day";
+import { Agenda } from "@/features/calendar/Agenda";
 
 /**
- * カレンダー（予定専用・自作の時間グリッド）。
- * 仕様 §3.5: デフォルトは週相当の複数日表示、日見出しクリックで日表示に展開。
- * 仕様 §6.1: ドラッグで時間移動、下端ドラッグでリサイズ、15分スナップ（TimeGrid 側）。
+ * カレンダー（予定専用）。週/日の切替・時間グリッドは廃止し、無限スクロールのアジェンダに一本化。
+ * 仕様 §3.5: 連続した日次リストで予定を確認する。各日にシフト（勤務地）チップを併置。
+ * 時間の変更は予定詳細パネル（datetime-local）で行う。
  */
 export function Calendar() {
-  const { events, addEvent, updateEvent } = useAppData();
-  const { openEvent, openEventDraft } = useOverlay();
+  const { events, shiftTypes, shifts, addEvent, setShift } = useAppData();
+  const { openEvent, openEventDraft, openShiftTypes } = useOverlay();
 
-  const [view, setView] = useState<View>("week");
-  const [anchor, setAnchor] = useState<Date>(() => parseDate(APP_TODAY));
+  const todayYmd = ymd(parseDate(APP_TODAY));
+  // 「今日へ」で Agenda を再マウントして今日へスクロールし直す
+  const [agendaKey, setAgendaKey] = useState(0);
 
-  const days = view === "week" ? weekDays(anchor) : [startOfDay(anchor)];
-
-  const shift = (dir: -1 | 1) => setAnchor((a) => addDays(a, dir * (view === "week" ? 7 : 1)));
-  const goToday = () => setAnchor(parseDate(APP_TODAY));
-
-  const title =
-    view === "week"
-      ? `${formatMonthDay(days[0])} – ${formatMonthDay(days[6])}`
-      : `${formatMonthDay(anchor)}（${weekdayLabel(anchor)}）`;
-
-  // ＋予定: 表示中の基準日 9:00–10:00 の下書きを作って詳細パネルを開く
-  const addAtAnchor = () => {
-    const base = startOfDay(anchor);
-    const id = addEvent({
-      title: "",
-      startAt: toLocalIso(dateAtMinutes(base, 9 * 60)),
-      endAt: toLocalIso(dateAtMinutes(base, 10 * 60)),
-    });
+  const createDraft = (startIso: string, endIso: string) => {
+    const id = addEvent({ title: "", startAt: startIso, endAt: endIso });
     openEventDraft(id);
+  };
+
+  // ＋予定: 今日 9:00–10:00 の下書きを作って詳細パネルを開く
+  const addToday = () => {
+    const base = startOfDay(parseDate(APP_TODAY));
+    createDraft(toLocalIso(dateAtMinutes(base, 9 * 60)), toLocalIso(dateAtMinutes(base, 10 * 60)));
   };
 
   return (
@@ -62,94 +40,35 @@ export function Calendar() {
         </span>
 
         <div className="ml-auto flex items-center gap-1.5">
-          {/* 週/日 切替 */}
-          <div className="flex overflow-hidden rounded-md border border-border">
-            {(["week", "day"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setView(v)}
-                className={cn(
-                  "px-2 py-1 text-[12px] transition-colors",
-                  view === v
-                    ? "bg-secondary font-medium text-foreground"
-                    : "text-muted-foreground hover:bg-accent"
-                )}
-              >
-                {v === "week" ? "週" : "日"}
-              </button>
-            ))}
-          </div>
-
-          <Button variant="outline" size="sm" onClick={addAtAnchor}>
+          <button
+            type="button"
+            onClick={() => setAgendaKey((k) => k + 1)}
+            className="cursor-pointer rounded-md px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-accent"
+          >
+            今日へ
+          </button>
+          <Button variant="outline" size="sm" onClick={openShiftTypes} title="勤務地・シフトを管理">
+            <MapPin />
+            勤務地
+          </Button>
+          <Button variant="outline" size="sm" onClick={addToday}>
             <Plus />
             予定
           </Button>
         </div>
       </div>
 
-      {/* ナビゲーション（期間ラベル＋前後＋今日） */}
-      <div className="flex items-center gap-2 border-b border-border px-4 py-1.5">
-        <span className="text-[13px] font-medium tabular">{title}</span>
-        <div className="ml-auto flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => shift(-1)}
-            className="flex size-6 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent"
-            aria-label="前へ"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <button
-            type="button"
-            onClick={goToday}
-            className="cursor-pointer rounded px-2 py-0.5 text-[12px] text-muted-foreground hover:bg-accent"
-          >
-            今日
-          </button>
-          <button
-            type="button"
-            onClick={() => shift(1)}
-            className="flex size-6 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent"
-            aria-label="次へ"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
-      </div>
-
-      {view === "week" ? (
-        <WeekAgenda
-          days={days}
-          events={events}
-          todayYmd={ymd(parseDate(APP_TODAY))}
-          onPickDay={(day) => {
-            setAnchor(startOfDay(day));
-            setView("day");
-          }}
-          onOpenEvent={openEvent}
-          onCreateAt={(startIso, endIso) => {
-            const id = addEvent({ title: "", startAt: startIso, endAt: endIso });
-            openEventDraft(id);
-          }}
-        />
-      ) : (
-        <TimeGrid
-          days={days}
-          events={events}
-          todayYmd={ymd(parseDate(APP_TODAY))}
-          onPickDay={(day) => {
-            setAnchor(startOfDay(day));
-            setView("day");
-          }}
-          onOpenEvent={openEvent}
-          onCreateAt={(startIso, endIso) => {
-            const id = addEvent({ title: "", startAt: startIso, endAt: endIso });
-            openEventDraft(id);
-          }}
-          onCommit={(id, startIso, endIso) => updateEvent(id, { startAt: startIso, endAt: endIso })}
-        />
-      )}
+      <Agenda
+        key={agendaKey}
+        events={events}
+        shiftTypes={shiftTypes}
+        shifts={shifts}
+        todayYmd={todayYmd}
+        onOpenEvent={openEvent}
+        onCreateAt={createDraft}
+        onSetShift={setShift}
+        onManageShifts={openShiftTypes}
+      />
     </section>
   );
 }
