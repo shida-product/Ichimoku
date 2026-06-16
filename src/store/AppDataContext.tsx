@@ -331,6 +331,8 @@ interface AppDataContextValue {
   reorderCategory: (id: string, direction: "up" | "down") => void;
   /** カテゴリを beforeId の直前へ移動（末尾は beforeId=null）。ボードの列 D&D 用。 */
   moveCategoryBefore: (id: string, beforeId: string | null) => void;
+  /** カテゴリ色（パレットのスロットキー "cat-N" or null=自動）を設定。 */
+  setCategoryColor: (id: string, color: string | null) => void;
 
   // 予定（addEvent は作成した id を返す）
   addEvent: (input: {
@@ -641,6 +643,13 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const renameCategory = useCallback<AppDataContextValue["renameCategory"]>(
     (id, name) => {
       updateCategoryMut.mutate({ id, patch: { name } });
+    },
+    [updateCategoryMut]
+  );
+
+  const setCategoryColor = useCallback<AppDataContextValue["setCategoryColor"]>(
+    (id, color) => {
+      updateCategoryMut.mutate({ id, patch: { color } });
     },
     [updateCategoryMut]
   );
@@ -960,6 +969,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       deleteCategory,
       reorderCategory,
       moveCategoryBefore,
+      setCategoryColor,
       addEvent,
       updateEvent,
       deleteEvent,
@@ -987,6 +997,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       deleteCategory,
       reorderCategory,
       moveCategoryBefore,
+      setCategoryColor,
       addEvent,
       updateEvent,
       deleteEvent,

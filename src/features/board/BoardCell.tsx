@@ -53,17 +53,14 @@ export function BoardCell({
         {children}
       </SortableContext>
       {isEmpty ? (
-        // 空のときも確実に狙えるドロップ先にする。特に未分類（grid）は
-        // 「ここへ戻す」操作の的が小さいと届かないため、広いゾーン＋ヒントにする。
+        // 空のときも確実に狙えるドロップ先にする。的が小さいと届かないため、
+        // 破線の広いゾーン＋ヒント文言を出す（未分類=grid と各カテゴリで文言を変える）。
         <span
           className={cn(
-            "select-none text-center text-[11px] text-ink-3/60",
-            grid
-              ? "col-span-full flex h-16 items-center justify-center rounded-md border border-dashed border-border"
-              : "px-1 py-2"
+            "col-span-full flex h-16 select-none items-center justify-center rounded-md border border-dashed border-border text-center text-[11px] text-ink-3/60"
           )}
         >
-          {grid ? "ここにドロップで未分類へ" : "—"}
+          {grid ? "ここにドロップで未分類へ" : "ここにドロップ"}
         </span>
       ) : null}
     </div>

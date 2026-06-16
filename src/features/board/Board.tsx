@@ -8,7 +8,7 @@ import { Lane } from "@/features/board/Lane";
 import { CATEGORY_PREFIX, useBoardOrder } from "@/features/board/BoardDndProvider";
 import { CompleteZone } from "@/features/board/CompleteZone";
 import { Button } from "@/components/ui/button";
-import { CAT_UNCAT_VAR, paletteVar } from "@/lib/palette";
+import { CAT_UNCAT_VAR, resolveColor } from "@/lib/palette";
 
 const UNCAT_KEY = "uncat";
 /** カテゴリ列の最小幅（px）。これを下回らない範囲で最大 MAX_COLS 列まで詰める。
@@ -18,7 +18,7 @@ const MAX_COLS = 4;
 const UNCAT_COLOR = CAT_UNCAT_VAR; // 未分類レーンのドット色（テーマ追従）
 
 function catColor(c: Category, index: number): string {
-  return c.color ?? paletteVar(index);
+  return resolveColor(c.color, index);
 }
 
 /**

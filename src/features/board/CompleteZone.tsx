@@ -29,14 +29,21 @@ export function CompleteZone({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex min-h-[64px] items-center gap-2 rounded-md border border-dashed border-border px-3 py-3 text-[11px] font-medium tracking-[0.05em] text-muted-foreground transition-colors",
+          "relative flex min-h-[64px] items-center gap-2 rounded-md border border-dashed border-border px-3 py-3 text-[11px] font-medium tracking-[0.05em] text-muted-foreground transition-colors",
           isOver && "border-transparent bg-accent ring-2 ring-primary/40"
         )}
       >
-        <CircleCheckBig className="size-3.5" />
-        完了
-        <span className="text-ink-3">{totalCount}</span>
-        <span className="font-normal text-ink-3">ここにドロップで消化</span>
+        {/* 左: 完了ラベル＋件数 */}
+        <span className="flex items-center gap-2">
+          <CircleCheckBig className="size-3.5" />
+          完了
+          <span className="text-ink-3">{totalCount}</span>
+        </span>
+        {/* 中央: ドロップ案内（左右の要素に影響されずボックス中央へ。クリックを邪魔しない） */}
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center font-normal text-ink-3">
+          ここにドロップで消化
+        </span>
+        {/* 右: 履歴 */}
         <Button
           variant="outline"
           size="sm"

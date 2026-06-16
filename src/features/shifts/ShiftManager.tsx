@@ -2,8 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { AutoInput, PanelShell, fieldClass } from "@/features/_shared/panel";
-import { shiftColor } from "@/features/shifts/shiftColors";
-import { CAT_PALETTE_VARS, toHex } from "@/lib/palette";
+import { ColorPicker } from "@/features/_shared/ColorPicker";
 
 /** 勤務地（シフト種別）管理。作成・リネーム・色変更・並べ替え・削除。カテゴリ管理と同型。 */
 export function ShiftManager({ onClose }: { onClose: () => void }) {
@@ -56,66 +55,53 @@ export function ShiftManager({ onClose }: { onClose: () => void }) {
           shiftTypes.map((s, i) => (
             <div
               key={s.id}
-              className="flex items-center gap-1.5 rounded-md border border-border bg-card p-1.5"
+              className="flex flex-col gap-1.5 rounded-md border border-border bg-card p-1.5"
             >
-              <label
-                className="relative ml-1 size-3.5 shrink-0 cursor-pointer rounded-[3px]"
-                style={{ background: shiftColor(s, i) }}
-                title="色を変更"
-              >
-                <input
-                  type="color"
-                  value={toHex(shiftColor(s, i))}
-                  onChange={(e) => updateShiftType(s.id, { color: e.target.value })}
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                  aria-label={`${s.name} の色`}
+              <div className="flex items-center gap-1.5">
+                <AutoInput
+                  value={s.name}
+                  onValueChange={(v) => updateShiftType(s.id, { name: v })}
+                  className="min-w-0 flex-1 bg-transparent px-1 py-1 text-[13px] outline-none focus:bg-secondary"
                 />
-              </label>
-              <AutoInput
-                value={s.name}
-                onValueChange={(v) => updateShiftType(s.id, { name: v })}
-                className="min-w-0 flex-1 bg-transparent px-1 py-1 text-[13px] outline-none focus:bg-secondary"
-              />
-              <span className="shrink-0 px-1 text-[11px] text-ink-3" title="割当日数">
-                {countOf(s.id)}
-              </span>
-              <button
-                type="button"
-                aria-label="上へ"
-                disabled={i === 0}
-                onClick={() => reorderShiftType(s.id, "up")}
-                className="rounded p-1 text-ink-3 transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-30"
-              >
-                <ChevronUp className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                aria-label="下へ"
-                disabled={i === shiftTypes.length - 1}
-                onClick={() => reorderShiftType(s.id, "down")}
-                className="rounded p-1 text-ink-3 transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-30"
-              >
-                <ChevronDown className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                aria-label="削除"
-                onClick={() => deleteShiftType(s.id)}
-                className="rounded p-1 text-ink-3 transition-colors hover:bg-secondary hover:text-crit"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
+                <span className="shrink-0 px-1 text-[11px] text-ink-3" title="割当日数">
+                  {countOf(s.id)}
+                </span>
+                <button
+                  type="button"
+                  aria-label="上へ"
+                  disabled={i === 0}
+                  onClick={() => reorderShiftType(s.id, "up")}
+                  className="rounded p-1 text-ink-3 transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-30"
+                >
+                  <ChevronUp className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="下へ"
+                  disabled={i === shiftTypes.length - 1}
+                  onClick={() => reorderShiftType(s.id, "down")}
+                  className="rounded p-1 text-ink-3 transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-30"
+                >
+                  <ChevronDown className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="削除"
+                  onClick={() => deleteShiftType(s.id)}
+                  className="rounded p-1 text-ink-3 transition-colors hover:bg-secondary hover:text-crit"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+              <div className="pl-1">
+                <ColorPicker
+                  value={s.color}
+                  onChange={(v) => updateShiftType(s.id, { color: v })}
+                />
+              </div>
             </div>
           ))
         )}
-      </div>
-
-      {/* 色サンプル（選びやすさのための補助・任意） */}
-      <div className="flex flex-wrap gap-1.5">
-        <span className="w-full text-[11px] text-muted-foreground">標準色</span>
-        {CAT_PALETTE_VARS.map((c) => (
-          <span key={c} className="size-4 rounded" style={{ background: c }} title={c} />
-        ))}
       </div>
     </PanelShell>
   );

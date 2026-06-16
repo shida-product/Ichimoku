@@ -1,13 +1,14 @@
 /**
- * 分類色（カテゴリ・勤務地のフォールバック）の単一管理ポイント。
+ * 分類色（カテゴリ・勤務地）の単一管理ポイント。
  *
- * 色の「実値」は index.css の `--cat-1 .. --cat-N` ＋ `--cat-uncat` に置く
- * （テーマ＝ColorTuner のプリセットで一括切替できる＝配色は 1 箇所で管理）。
- * このモジュールは「index → CSS 変数参照」「α付き淡色（color-mix）」
- * 「<input type=color> 用の実 hex 解決」だけを担い、色値そのものは持たない。
+ * モデル: 「色そのもの」は保存しない。データは **テーマパレットのスロット参照**
+ * （"cat-1".."cat-6"）か null（自動）だけを持つ。実際の色値は index.css の
+ * `--cat-1 .. --cat-N` ＋ `--cat-uncat` に一元化し、ColorTuner のプリセットで一括切替できる。
+ * これにより「テーマを変えれば全分類色が追従」「コントラスト破綻なし」を担保する。
  *
- * 各カテゴリ/勤務地が自前の色（data の color）を持つ場合はそれが最優先。
- * color 未設定のときだけ、この index 順のテーマ色にフォールバックする。
+ * - 自前のスロット（"cat-3"）を持つ → そのスロット色（テーマ追従）
+ * - null → index 順に自動割当（テーマ追従）
+ * - 旧データの自由 hex（"#aabbcc"）→ 後方互換でそのまま表示（テーマ非追従）
  */
 
 /** index.css に定義する分類色の数（--cat-1 .. --cat-N） */
@@ -16,15 +17,27 @@ export const CAT_PALETTE_SIZE = 6;
 /** 未分類など中立要素のフォールバック色（テーマ追従） */
 export const CAT_UNCAT_VAR = "var(--cat-uncat)";
 
-/** 標準色サンプル表示用の var() 一覧（管理パネルの「標準色」など） */
-export const CAT_PALETTE_VARS = Array.from(
-  { length: CAT_PALETTE_SIZE },
-  (_, i) => `var(--cat-${i + 1})`
-);
+/** 選択肢になるスロットキー一覧（"cat-1".."cat-6"）。ピッカーが参照する。 */
+export const CAT_SLOTS = Array.from({ length: CAT_PALETTE_SIZE }, (_, i) => `cat-${i + 1}`);
 
-/** index（0 始まり）→ CSS 変数参照。dot やタイント素色として使う。 */
+/** index（0 始まり）→ スロットの CSS 変数参照（自動割当用）。 */
 export function paletteVar(index: number): string {
   return `var(--cat-${(index % CAT_PALETTE_SIZE) + 1})`;
+}
+
+/** スロットキー（"cat-3"）→ CSS 変数参照。スウォッチ描画用。 */
+export function slotVar(slot: string): string {
+  return `var(--${slot})`;
+}
+
+/**
+ * 保存値（スロット / 自由hex / null）と index から、表示用の CSS color を解決する。
+ * カテゴリ・勤務地で共通。
+ */
+export function resolveColor(stored: string | null, index: number): string {
+  if (!stored) return paletteVar(index); // null＝自動（index 順）
+  if (stored.startsWith("#")) return stored; // 旧データの自由 hex（後方互換）
+  return slotVar(stored); // "cat-3" → var(--cat-3)
 }
 
 /**
@@ -34,15 +47,4 @@ export function paletteVar(index: number): string {
  */
 export function tint(color: string, percent: number): string {
   return `color-mix(in srgb, ${color} ${percent}%, transparent)`;
-}
-
-/**
- * <input type="color"> の value 用に実 hex へ解決する。
- * var(--x) のときは :root の computed value を読む（DOM 前提のクライアント専用）。
- */
-export function toHex(color: string): string {
-  if (!color.startsWith("var(")) return color;
-  const name = color.slice(4, -1).trim(); // "var(--cat-1)" → "--cat-1"
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return /^#[0-9a-fA-F]{6}$/.test(v) ? v : "#888888";
 }

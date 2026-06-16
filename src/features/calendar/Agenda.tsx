@@ -155,7 +155,8 @@ export function Agenda({
               <div
                 className={cn(
                   "flex gap-3 px-3 py-2 transition-colors",
-                  dy === highlightDate && "bg-primary/10 ring-1 ring-primary/30 ring-inset"
+                  // 近日締切のハイライトはボード側（TaskCard）と同一指定に統一: warn-soft 地＋warn リング。
+                  dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"
                 )}
               >
                 {/* 日付列 */}

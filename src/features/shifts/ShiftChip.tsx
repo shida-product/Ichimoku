@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Plus, Settings } from "lucide-react";
 import type { ShiftType } from "@/lib/types";
 import { AnchoredPopover } from "@/components/overlay/AnchoredPopover";
-import { shiftColor } from "@/features/shifts/shiftColors";
-import { tint } from "@/lib/palette";
+import { resolveColor, tint } from "@/lib/palette";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,13 +37,13 @@ export function ShiftChip({
       title="シフトを変更"
       className="inline-flex max-w-[7.5rem] cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
       style={{
-        borderColor: tint(shiftColor(current, currentIdx), 40),
-        backgroundColor: tint(shiftColor(current, currentIdx), 12),
+        borderColor: tint(resolveColor(current.color, currentIdx), 40),
+        backgroundColor: tint(resolveColor(current.color, currentIdx), 12),
       }}
     >
       <span
         className="size-2 shrink-0 rounded-full"
-        style={{ backgroundColor: shiftColor(current, currentIdx) }}
+        style={{ backgroundColor: resolveColor(current.color, currentIdx) }}
       />
       <span className="truncate">{current.name}</span>
     </button>
@@ -79,7 +78,7 @@ export function ShiftChip({
             >
               <span
                 className="size-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: shiftColor(s, i) }}
+                style={{ backgroundColor: resolveColor(s.color, i) }}
               />
               <span className="min-w-0 flex-1 truncate">{s.name}</span>
               {s.id === currentId ? <span className="text-[11px] text-primary">選択中</span> : null}

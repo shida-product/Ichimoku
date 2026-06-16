@@ -16,9 +16,10 @@ const CAT_DEV = "cat-dev";
 const CAT_KEIRI = "cat-keiri";
 
 export const MOCK_CATEGORIES: Category[] = [
-  { id: CAT_EIGYO, name: "営業", position: "h", color: "#c2603f" },
-  { id: CAT_DEV, name: "開発", position: "n", color: "#4f7a6f" },
-  { id: CAT_KEIRI, name: "経理", position: "t", color: "#8a6d3b" },
+  // 色はテーマパレットのスロット参照（"cat-N"）。プリセット切替で追従する。
+  { id: CAT_EIGYO, name: "営業", position: "h", color: "cat-1" },
+  { id: CAT_DEV, name: "開発", position: "n", color: "cat-4" },
+  { id: CAT_KEIRI, name: "経理", position: "t", color: "cat-2" },
 ];
 
 export const MOCK_TASKS: Task[] = [
@@ -241,10 +242,11 @@ const ST_RINGO = "st-ringo";
 const ST_OFF = "st-off";
 
 export const MOCK_SHIFT_TYPES: ShiftType[] = [
-  { id: ST_SHIBUYA, name: "渋谷店", color: "#c2603f", position: "h" },
-  { id: ST_EBISU, name: "恵比寿店", color: "#4f7a6f", position: "n" },
-  { id: ST_RINGO, name: "りんご", color: "#8a6d3b", position: "t" },
-  { id: ST_OFF, name: "休み", color: "#9aa29f", position: "x" },
+  // 色はテーマパレットのスロット参照。「休み」は null＝自動（テーマ追従）の例。
+  { id: ST_SHIBUYA, name: "渋谷店", color: "cat-1", position: "h" },
+  { id: ST_EBISU, name: "恵比寿店", color: "cat-4", position: "n" },
+  { id: ST_RINGO, name: "りんご", color: "cat-2", position: "t" },
+  { id: ST_OFF, name: "休み", color: null, position: "x" },
 ];
 
 // その週のシフト割当（1日1件）
