@@ -34,7 +34,7 @@ function catColor(c: Category, index: number): string {
 export function Board() {
   const { categories, tasks, archivedTasks, reorderTask, completeTask, uncompleteTask, addTask } =
     useAppData();
-  const { openTask, openTaskDraft, openHistory } = useOverlay();
+  const { openTaskDraft, openHistory } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showMemo, setShowMemo] = useState(true);
@@ -194,13 +194,7 @@ export function Board() {
         </div>
 
         {/* 共有の完了ドロップゾーン（ボード下部に固定） */}
-        <CompleteZone
-          recent={archivedTasks}
-          totalCount={archivedTasks.length}
-          onOpen={openTask}
-          onUndo={uncompleteTask}
-          onOpenHistory={openHistory}
-        />
+        <CompleteZone totalCount={archivedTasks.length} onOpenHistory={openHistory} />
 
         <DragOverlay>
           {activeTask ? (
