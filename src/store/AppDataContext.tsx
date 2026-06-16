@@ -55,8 +55,20 @@ function newId(): string {
 }
 
 // ── 並べ替え用ヘルパー ──
-function byPosition<T extends { position: string }>(arr: T[]): T[] {
-  return [...arr].sort((a, b) => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0));
+// position 昇順。旧モデル（カテゴリ×状態スコープ）由来で position が重複しても
+// 並びが決定的になるよう、同値時は id で安定ソートする（Codex P2）。
+function byPosition<T extends { position: string; id: string }>(arr: T[]): T[] {
+  return [...arr].sort((a, b) =>
+    a.position < b.position
+      ? -1
+      : a.position > b.position
+        ? 1
+        : a.id < b.id
+          ? -1
+          : a.id > b.id
+            ? 1
+            : 0
+  );
 }
 
 function byStartAt(arr: EventItem[]): EventItem[] {
@@ -374,9 +386,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   });
 
   // active（ボード・締切レーン用）と archived（完了履歴用）を派生。
-  const tasks = useMemo(() => allTasks.filter((t) => t.archivedAt === null), [allTasks]);
+  // active = 未完了かつ未アーカイブ。旧データ（status='done' だが archived_at 未設定）が
+  // 単一リストのボードに復活しないよう、done も明示的に除外する（Codex P1）。
+  const tasks = useMemo(
+    () => allTasks.filter((t) => t.status !== "done" && t.archivedAt === null),
+    [allTasks]
+  );
+  // 完了履歴 = 完了（done）。旧データ含め done を完了として集約する。
   const archivedTasks = useMemo(
-    () => byCompletedDesc(allTasks.filter((t) => t.archivedAt !== null)),
+    () => byCompletedDesc(allTasks.filter((t) => t.status === "done")),
     [allTasks]
   );
 
@@ -488,7 +506,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     if (!userId && !IS_PREVIEW) return;
     const now = Date.now();
     for (const t of archivedTasks) {
-      if (t.archivedAt && now - new Date(t.archivedAt).getTime() >= PURGE_AFTER_MS) {
+      // 旧 done 行（archived_at 未設定）は completed_at を基準に判定する。
+      const since = t.archivedAt ?? t.completedAt;
+      if (since && now - new Date(since).getTime() >= PURGE_AFTER_MS) {
         purgeMutate(t.id);
       }
     }
