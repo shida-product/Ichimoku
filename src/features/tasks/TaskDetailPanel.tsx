@@ -1,7 +1,17 @@
-import { Plus, Star, Trash2, Undo2, X } from "lucide-react";
+import { ExternalLink, Plus, Star, Trash2, Undo2, X } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { isFlagged, type TaskLink } from "@/lib/types";
-import { PanelShell, fieldClass, useSavedFlash } from "@/features/_shared/panel";
+import { AutoTextarea, PanelShell, fieldClass, useSavedFlash } from "@/features/_shared/panel";
+
+/**
+ * 入力 URL を開ける形に正規化する。`http(s)://` 省略時は `https://` を補い、
+ * クリックで開ける href を返す。開けない（空など）場合は null。
+ */
+function toHref(url: string): string | null {
+  const v = url.trim();
+  if (!v) return null;
+  return /^https?:\/\//i.test(v) ? v : `https://${v}`;
+}
 
 function fmtDateTime(iso: string): string {
   const d = new Date(iso);
@@ -84,11 +94,11 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
       {/* メモ */}
       <label className="block">
         <span className="mb-1.5 block text-xs text-muted-foreground">メモ</span>
-        <textarea
+        <AutoTextarea
           value={task.description}
           onChange={(e) => patch({ description: e.target.value })}
           placeholder="補足や手順（プレーンテキスト）"
-          className={`${fieldClass} min-h-[64px] resize-y`}
+          className="min-h-[64px]"
         />
       </label>
 
@@ -96,30 +106,53 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
       <div>
         <span className="mb-1.5 block text-xs text-muted-foreground">リンク</span>
         <div className="flex flex-col gap-1.5">
-          {task.links.map((link, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <input
-                value={link.title}
-                onChange={(e) => setLink(i, "title", e.target.value)}
-                placeholder="ラベル（任意）"
-                className={fieldClass}
-              />
-              <input
-                value={link.url}
-                onChange={(e) => setLink(i, "url", e.target.value)}
-                placeholder="https://…"
-                className={`${fieldClass} text-primary`}
-              />
-              <button
-                type="button"
-                aria-label="リンクを削除"
-                onClick={() => removeLink(i)}
-                className="shrink-0 rounded-md p-1.5 text-ink-3 transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <X className="size-3.5" />
-              </button>
-            </div>
-          ))}
+          {task.links.map((link, i) => {
+            const href = toHref(link.url);
+            return (
+              <div key={i} className="flex items-center gap-1.5">
+                <input
+                  value={link.title}
+                  onChange={(e) => setLink(i, "title", e.target.value)}
+                  placeholder="ラベル（任意）"
+                  className={fieldClass}
+                />
+                <input
+                  value={link.url}
+                  onChange={(e) => setLink(i, "url", e.target.value)}
+                  placeholder="https://…"
+                  className={`${fieldClass} text-primary`}
+                />
+                {href ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="リンクを開く"
+                    title={`開く: ${href}`}
+                    className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-primary"
+                  >
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                ) : (
+                  <span
+                    aria-hidden
+                    className="shrink-0 p-1.5 text-ink-3/40"
+                    title="URL を入力すると開けます"
+                  >
+                    <ExternalLink className="size-3.5" />
+                  </span>
+                )}
+                <button
+                  type="button"
+                  aria-label="リンクを削除"
+                  onClick={() => removeLink(i)}
+                  className="shrink-0 rounded-md p-1.5 text-ink-3 transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            );
+          })}
         </div>
         <button
           type="button"

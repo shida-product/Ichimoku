@@ -5,6 +5,7 @@ import type { Task } from "@/lib/types";
 import { isFlagged } from "@/lib/types";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
+import { useHighlight } from "@/features/board/HighlightContext";
 import { dueUrgency, formatMd, urgencyClasses } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
@@ -29,13 +30,15 @@ export function DueChip({ dueDate }: { dueDate: string }) {
  * ボード上のタスクカード（フラット・ドラッグ可能・クリックで詳細）。
  * 「対応中」は★フラグ（status=doing）で表す。★クリックでトグル（ドラッグ・詳細起動と分離）。
  */
-export function TaskCard({ task, showMemo }: { task: Task; showMemo: boolean }) {
+export function TaskCard({ task }: { task: Task }) {
   const { openTask } = useOverlay();
   const { updateTask } = useAppData();
+  const { highlightId } = useHighlight();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
   const flagged = isFlagged(task.status);
+  const highlighted = highlightId === task.id;
   const memo = task.description.trim();
 
   const toggleFlag = () => updateTask(task.id, { status: flagged ? "todo" : "doing" });
@@ -56,8 +59,11 @@ export function TaskCard({ task, showMemo }: { task: Task; showMemo: boolean }) 
         }
       }}
       className={cn(
-        "flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border bg-card p-2.5 text-left shadow-[var(--shadow-card)] transition-[border-color,box-shadow] hover:shadow-[var(--shadow-card-hover)]",
+        "flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border p-2.5 text-left shadow-[var(--shadow-card)] transition-[border-color,box-shadow,background-color] hover:shadow-[var(--shadow-card-hover)]",
         flagged ? "border-primary/45 ring-1 ring-primary/20" : "border-border hover:border-input",
+        // 近日締切カードにホバー中は該当タスクを強調（枠＝締切アクセント色、
+        // 内部背景は枠より薄いソフト地色でじんわり点灯）
+        highlighted ? "border-warn bg-warn-soft ring-2 ring-warn/50" : "bg-card",
         isDragging && "opacity-40"
       )}
     >
@@ -83,7 +89,7 @@ export function TaskCard({ task, showMemo }: { task: Task; showMemo: boolean }) 
           <Star className={cn("size-3.5", flagged && "fill-current")} />
         </button>
       </div>
-      {showMemo && memo ? (
+      {memo ? (
         <p className="line-clamp-2 text-[11px] leading-snug whitespace-pre-wrap text-muted-foreground">
           {memo}
         </p>

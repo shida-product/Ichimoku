@@ -10,7 +10,9 @@ export type ActiveOverlay =
   | { kind: "none" }
   | { kind: "task"; taskId: string; draft: boolean }
   | { kind: "category" }
-  | { kind: "event"; eventId: string; draft: boolean }
+  // 予定は保存ボタン式（option B）。eventId=null が新規登録、文字列が既存編集。
+  // initialDate は新規時に初期選択する日付（'YYYY-MM-DD'、＋を押した日）。
+  | { kind: "event"; eventId: string | null; initialDate?: string }
   | { kind: "history" }
   | { kind: "shiftTypes" };
 
@@ -23,8 +25,8 @@ interface OverlayContextValue {
   openCategory: () => void;
   /** 既存予定を編集で開く */
   openEvent: (eventId: string) => void;
-  /** 追加した下書き予定を開く */
-  openEventDraft: (eventId: string) => void;
+  /** 予定を新規登録で開く（保存ボタン式）。initialDate で初期日付を指定可。 */
+  openEventCreate: (initialDate?: string) => void;
   /** 完了履歴（アーカイブ）を開く */
   openHistory: () => void;
   /** 勤務地（シフト種別）管理を開く */
@@ -46,12 +48,9 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
     []
   );
   const openCategory = useCallback(() => setActive({ kind: "category" }), []);
-  const openEvent = useCallback(
-    (eventId: string) => setActive({ kind: "event", eventId, draft: false }),
-    []
-  );
-  const openEventDraft = useCallback(
-    (eventId: string) => setActive({ kind: "event", eventId, draft: true }),
+  const openEvent = useCallback((eventId: string) => setActive({ kind: "event", eventId }), []);
+  const openEventCreate = useCallback(
+    (initialDate?: string) => setActive({ kind: "event", eventId: null, initialDate }),
     []
   );
   const openHistory = useCallback(() => setActive({ kind: "history" }), []);
@@ -65,7 +64,7 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
       openTaskDraft,
       openCategory,
       openEvent,
-      openEventDraft,
+      openEventCreate,
       openHistory,
       openShiftTypes,
       close,
@@ -76,7 +75,7 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
       openTaskDraft,
       openCategory,
       openEvent,
-      openEventDraft,
+      openEventCreate,
       openHistory,
       openShiftTypes,
       close,

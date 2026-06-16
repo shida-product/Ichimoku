@@ -44,11 +44,8 @@ const ROWS: Row[] = [
   { k: "--crit-soft", label: "緊急 淡色" },
   { k: "--warn", label: "注意・橙（7日以内）" },
   { k: "--warn-soft", label: "注意 淡色" },
-  { group: "カテゴリ標準色" },
-  { k: "--cat-jimu", label: "事務" },
-  { k: "--cat-keiei", label: "経営" },
-  { k: "--cat-saiyo", label: "採用" },
-  { k: "--cat-mibun", label: "未分類" },
+  // 注: カテゴリ色はテーマトークンではなく各カテゴリの data（Category.color）が正。
+  //     ColorTuner は index.css のテーマトークン専用とし、カテゴリ色は扱わない。
 ];
 
 const TOKEN_DEFS = ROWS.filter((r): r is TokenDef => "k" in r);
@@ -119,6 +116,12 @@ export function ColorTuner() {
   const [copied, setCopied] = useState(false);
   // ユーザーが一度でも触れたか（未編集の基準値は永続化しない＝index.css 改訂に追従）
   const touched = useRef(false);
+  // index.css 由来の基準値（個別リセット用）。遅延初期化でマウント時に1回だけ捕捉する。
+  // applyVar は effect（commit 後）で走るため、この初期化時点の getComputedStyle は index.css の素の値。
+  const [base] = useState<{ values: Record<string, string>; radiusPx: number }>(() => ({
+    values: readBaseValues(),
+    radiusPx: readBaseRadiusPx(),
+  }));
 
   // values/radius を :root へ反映（外部システム＝DOM の同期。初回マウント時も走る）
   useEffect(() => {
@@ -145,6 +148,20 @@ export function ColorTuner() {
     touched.current = true;
     setRadiusPx(px);
   }, []);
+
+  // 1 トークンだけ index.css の基準値へ戻す（他の編集は維持）
+  const resetToken = useCallback(
+    (def: TokenDef) => {
+      touched.current = true;
+      setValues((prev) => ({ ...prev, [def.k]: base.values[def.k] }));
+    },
+    [base]
+  );
+
+  const resetRadius = useCallback(() => {
+    touched.current = true;
+    setRadiusPx(base.radiusPx);
+  }, [base]);
 
   const resetToCss = useCallback(() => {
     touched.current = false;
@@ -200,10 +217,6 @@ export function ColorTuner() {
   --crit-soft: ${g("--crit-soft")};
   --warn: ${g("--warn")};
   --warn-soft: ${g("--warn-soft")};
-  --cat-jimu: ${g("--cat-jimu")};
-  --cat-keiei: ${g("--cat-keiei")};
-  --cat-saiyo: ${g("--cat-saiyo")};
-  --cat-mibun: ${g("--cat-mibun")};
 }`;
   }, [values, radiusPx]);
 
@@ -334,8 +347,10 @@ export function ColorTuner() {
               key={row.k}
               def={row}
               value={values[row.k] ?? "#000000"}
+              baseValue={base.values[row.k] ?? "#000000"}
               onChange={(v) => setToken(row, v)}
-              colors={{ FIELD_BG, LINE, TXT, ACCENT }}
+              onReset={() => resetToken(row)}
+              colors={{ FIELD_BG, LINE, TXT, ACCENT, SUBTXT }}
             />
           )
         )}
@@ -366,6 +381,13 @@ export function ColorTuner() {
           <span style={{ fontSize: 11, color: SUBTXT, minWidth: 36, textAlign: "right" }}>
             {radiusPx}px
           </span>
+          <ResetButton
+            modified={radiusPx !== base.radiusPx}
+            onClick={resetRadius}
+            subtxt={SUBTXT}
+            accent={ACCENT}
+            title="角丸を index.css の値に戻す"
+          />
         </div>
 
         <div style={{ marginTop: 18, borderTop: "1px solid #322c22", paddingTop: 14 }}>
@@ -383,8 +405,13 @@ export function ColorTuner() {
             >
               {copied ? "コピーしました ✓" : "index.css をコピー"}
             </button>
-            <button type="button" onClick={resetToCss} style={{ ...btnStyle, flex: 1 }}>
-              index.css に戻す
+            <button
+              type="button"
+              onClick={resetToCss}
+              title="全トークンを index.css の採用色へ一括で戻し、保存値もクリアします"
+              style={{ ...btnStyle, flex: 1 }}
+            >
+              全部デフォルトに戻す
             </button>
           </div>
           <textarea
@@ -416,16 +443,60 @@ export function ColorTuner() {
   );
 }
 
+function ResetButton({
+  modified,
+  onClick,
+  subtxt,
+  accent,
+  title,
+}: {
+  modified: boolean;
+  onClick: () => void;
+  subtxt: string;
+  accent: string;
+  title: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!modified}
+      title={modified ? title : "変更なし（index.css の値）"}
+      aria-label={title}
+      style={{
+        width: 24,
+        height: 24,
+        flex: "0 0 auto",
+        padding: 0,
+        border: "none",
+        background: "none",
+        borderRadius: 5,
+        fontSize: 13,
+        lineHeight: 1,
+        color: modified ? accent : subtxt,
+        opacity: modified ? 1 : 0.3,
+        cursor: modified ? "pointer" : "default",
+      }}
+    >
+      ↺
+    </button>
+  );
+}
+
 function TokenRow({
   def,
   value,
+  baseValue,
   onChange,
+  onReset,
   colors,
 }: {
   def: TokenDef;
   value: string;
+  baseValue: string;
   onChange: (v: string) => void;
-  colors: { FIELD_BG: string; LINE: string; TXT: string; ACCENT: string };
+  onReset: () => void;
+  colors: { FIELD_BG: string; LINE: string; TXT: string; ACCENT: string; SUBTXT: string };
 }) {
   const [text, setText] = useState(value);
   const [invalid, setInvalid] = useState(false);
@@ -488,6 +559,13 @@ function TokenRow({
           padding: "5px 6px",
           outline: "none",
         }}
+      />
+      <ResetButton
+        modified={value !== baseValue}
+        onClick={onReset}
+        subtxt={colors.SUBTXT}
+        accent={colors.ACCENT}
+        title={`${def.label} を index.css の値に戻す`}
       />
     </div>
   );

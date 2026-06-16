@@ -14,7 +14,7 @@ export function UndoToast({
   onDismiss: () => void;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center">
+    <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center">
       <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-border bg-foreground/90 py-1.5 pr-1.5 pl-4 text-[12px] text-background shadow-lg">
         <span className="max-w-[200px] truncate">「{title || "（無題）"}」を完了</span>
         <button

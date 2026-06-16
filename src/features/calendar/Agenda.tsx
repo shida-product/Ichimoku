@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronUp, Plus } from "lucide-react";
-import type { EventItem, Shift, ShiftType } from "@/lib/types";
-import {
-  addDays,
-  dateAtMinutes,
-  formatTime,
-  parseIso,
-  toLocalIso,
-  weekdayLabel,
-  ymd,
-} from "@/lib/calendar";
-import { parseDate } from "@/lib/date";
+import type { EventItem, Shift, ShiftType, Task } from "@/lib/types";
+import { addDays, formatTime, parseIso, weekdayLabel, ymd } from "@/lib/calendar";
+import { dueUrgency, parseDate, urgencyClasses } from "@/lib/date";
 import { ShiftChip } from "@/features/shifts/ShiftChip";
+import { useHighlight } from "@/features/board/HighlightContext";
 import { cn } from "@/lib/utils";
+
+/** 複数日にまたぐ予定の、指定日における時刻ラベル */
+function timedLabel(e: EventItem, dy: string): string {
+  const s = parseIso(e.startAt);
+  const en = parseIso(e.endAt);
+  const sY = ymd(s);
+  const enY = ymd(en);
+  if (dy === sY && dy === enY) return `${formatTime(s)}～${formatTime(en)}`;
+  if (dy === sY) return `${formatTime(s)}〜`;
+  if (dy === enY) return `〜${formatTime(en)}`;
+  return "終日";
+}
 
 /** 初期に表示する過去/未来の日数（今日を基準とした相対オフセット） */
 const INITIAL_PAST = 2;
@@ -22,12 +27,16 @@ const PAGE = 14;
 
 export interface AgendaProps {
   events: EventItem[];
+  /** 締切付きタスク（締切日にカレンダー上へ表示する） */
+  tasks: Task[];
   shiftTypes: ShiftType[];
   shifts: Shift[];
   /** 「今日」とみなす日付（'YYYY-MM-DD'） */
   todayYmd: string;
   onOpenEvent: (id: string) => void;
-  onCreateAt: (startIso: string, endIso: string) => void;
+  onOpenTask: (id: string) => void;
+  /** 指定日に新規予定を作成（保存ボタン式モーダルを開く） */
+  onCreateOn: (dateYmd: string) => void;
   onSetShift: (date: string, shiftTypeId: string | null) => void;
   onManageShifts: () => void;
 }
@@ -40,15 +49,18 @@ export interface AgendaProps {
  */
 export function Agenda({
   events,
+  tasks,
   shiftTypes,
   shifts,
   todayYmd,
   onOpenEvent,
-  onCreateAt,
+  onOpenTask,
+  onCreateOn,
   onSetShift,
   onManageShifts,
 }: AgendaProps) {
   const base = parseDate(todayYmd); // 今日 0:00
+  const { highlightDate } = useHighlight(); // 近日締切カードのホバー連動
   const [startOffset, setStartOffset] = useState(-INITIAL_PAST);
   const [endOffset, setEndOffset] = useState(INITIAL_FUTURE);
 
@@ -118,12 +130,19 @@ export function Agenda({
           const prev = di > 0 ? days[di - 1] : null;
           const showMonth = !prev || prev.getMonth() !== day.getMonth();
 
-          const ofDay = events.filter((e) => ymd(parseIso(e.startAt)) === dy);
+          // その日を含む予定（複数日にまたぐ予定は各日に表示）
+          const ofDay = events.filter((e) => {
+            const sY = ymd(parseIso(e.startAt));
+            const enY = ymd(parseIso(e.endAt));
+            return dy >= sY && dy <= enY;
+          });
           const allDay = ofDay.filter((e) => e.allDay);
           const timed = ofDay
             .filter((e) => !e.allDay)
             .sort((a, b) => (a.startAt < b.startAt ? -1 : a.startAt > b.startAt ? 1 : 0));
-          const count = allDay.length + timed.length;
+          // この日が締切のタスク（完了は除外）
+          const dueTasks = tasks.filter((t) => t.dueDate === dy && t.status !== "done");
+          const count = allDay.length + timed.length + dueTasks.length;
 
           return (
             <li key={dy} ref={isToday ? todayRef : undefined}>
@@ -133,7 +152,12 @@ export function Agenda({
                 </div>
               ) : null}
 
-              <div className="flex gap-3 px-3 py-2">
+              <div
+                className={cn(
+                  "flex gap-3 px-3 py-2 transition-colors",
+                  dy === highlightDate && "bg-primary/10 ring-1 ring-primary/30 ring-inset"
+                )}
+              >
                 {/* 日付列 */}
                 <div className="flex w-11 shrink-0 flex-col items-center gap-0.5 pt-0.5 select-none">
                   <span className={cn("text-[11px]", isToday ? "text-primary" : "text-ink-3")}>
@@ -161,12 +185,7 @@ export function Agenda({
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        onCreateAt(
-                          toLocalIso(dateAtMinutes(day, 9 * 60)),
-                          toLocalIso(dateAtMinutes(day, 10 * 60))
-                        )
-                      }
+                      onClick={() => onCreateOn(dy)}
                       className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent"
                       aria-label={`${day.getMonth() + 1}/${day.getDate()} に予定を追加`}
                       title="予定を追加"
@@ -196,29 +215,52 @@ export function Agenda({
                           </span>
                         </button>
                       ))}
-                      {timed.map((e) => {
-                        const s = parseIso(e.startAt);
-                        const en = parseIso(e.endAt);
+                      {timed.map((e) => (
+                        <button
+                          key={e.id}
+                          type="button"
+                          onClick={() => onOpenEvent(e.id)}
+                          className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
+                        >
+                          <span className="mt-px w-1 shrink-0 self-stretch rounded-full bg-primary/50" />
+                          <span className="w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
+                            {timedLabel(e, dy)}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13px] font-medium">
+                              {e.title || "（無題）"}
+                            </span>
+                            {e.location ? (
+                              <span className="block truncate text-[11px] text-muted-foreground">
+                                {e.location}
+                              </span>
+                            ) : null}
+                          </span>
+                        </button>
+                      ))}
+                      {/* 締切タスク（緊急度で色分け・クリックでタスク詳細） */}
+                      {dueTasks.map((t) => {
+                        const uc = urgencyClasses(dueUrgency(dy, todayYmd));
                         return (
                           <button
-                            key={e.id}
+                            key={t.id}
                             type="button"
-                            onClick={() => onOpenEvent(e.id)}
+                            onClick={() => onOpenTask(t.id)}
                             className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
                           >
-                            <span className="mt-px w-1 shrink-0 self-stretch rounded-full bg-primary/50" />
-                            <span className="w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
-                              {formatTime(s)}～{formatTime(en)}
+                            <span
+                              className={cn("mt-px w-1 shrink-0 self-stretch rounded-full", uc.bg)}
+                            />
+                            <span
+                              className={cn(
+                                "w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap tabular",
+                                uc.text
+                              )}
+                            >
+                              締切
                             </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[13px] font-medium">
-                                {e.title || "（無題）"}
-                              </span>
-                              {e.location ? (
-                                <span className="block truncate text-[11px] text-muted-foreground">
-                                  {e.location}
-                                </span>
-                              ) : null}
+                            <span className="min-w-0 flex-1 truncate pt-px text-[13px] font-medium">
+                              {t.title || "（無題）"}
                             </span>
                           </button>
                         );

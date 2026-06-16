@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 /**
@@ -9,6 +9,37 @@ import { X } from "lucide-react";
 /** 入力系の共通クラス */
 export const fieldClass =
   "w-full rounded-md border border-input bg-card px-2.5 py-2 text-[13px] outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/25 placeholder:text-ink-3";
+
+/**
+ * 内容の文字数・行数に合わせて高さが自動で伸縮する textarea。
+ * 入力時はもちろん、value 変更（パネルを閉じて開き直した際の初期表示）でも再計算する。
+ * 共通の `fieldClass` を踏襲しつつ、縦の手動リサイズは無効化（自動制御に統一）。
+ */
+export function AutoTextarea({
+  value,
+  className,
+  ...props
+}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { value: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  // レイアウト確定前に高さを合わせ、初回表示のちらつきを防ぐ。
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      rows={1}
+      className={`${fieldClass} resize-none overflow-hidden ${className ?? ""}`}
+      {...props}
+    />
+  );
+}
 
 /** 自動保存の「保存済み ✓」点滅フラグ */
 export function useSavedFlash() {

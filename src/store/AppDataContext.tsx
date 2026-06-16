@@ -325,9 +325,18 @@ interface AppDataContextValue {
   renameCategory: (id: string, name: string) => void;
   deleteCategory: (id: string) => void;
   reorderCategory: (id: string, direction: "up" | "down") => void;
+  /** カテゴリを beforeId の直前へ移動（末尾は beforeId=null）。ボードの列 D&D 用。 */
+  moveCategoryBefore: (id: string, beforeId: string | null) => void;
 
   // 予定（addEvent は作成した id を返す）
-  addEvent: (input: { title: string; startAt: string; endAt: string }) => string;
+  addEvent: (input: {
+    title: string;
+    startAt: string;
+    endAt: string;
+    allDay?: boolean;
+    location?: string | null;
+    notes?: string | null;
+  }) => string;
   updateEvent: (id: string, patch: Partial<EventItem>) => void;
   deleteEvent: (id: string) => void;
 
@@ -661,6 +670,27 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [updateCategoryMut, categories]
   );
 
+  const moveCategoryBefore = useCallback<AppDataContextValue["moveCategoryBefore"]>(
+    (id, beforeId) => {
+      // 自分を除いた現在の並び（position 昇順）に対し、beforeId の直前へ挿入する position を採番。
+      const rest = byPosition(categories.filter((c) => c.id !== id));
+      let position: string;
+      if (!beforeId) {
+        position = keyAfter(rest.length ? rest[rest.length - 1].position : null);
+      } else {
+        const idx = rest.findIndex((c) => c.id === beforeId);
+        if (idx < 0) {
+          position = keyAfter(rest.length ? rest[rest.length - 1].position : null);
+        } else {
+          const prev = idx > 0 ? rest[idx - 1] : null;
+          position = keyBetween(prev?.position ?? null, rest[idx].position);
+        }
+      }
+      updateCategoryMut.mutate({ id, patch: { position } });
+    },
+    [updateCategoryMut, categories]
+  );
+
   // ── 予定 mutations ──
   const addEventMut = useMutation({
     mutationFn: async (e: EventItem) => {
@@ -705,9 +735,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         title: input.title,
         startAt: input.startAt,
         endAt: input.endAt,
-        allDay: false,
-        location: null,
-        notes: null,
+        allDay: input.allDay ?? false,
+        location: input.location ?? null,
+        notes: input.notes ?? null,
       };
       addEventMut.mutate(event);
       return event.id;
@@ -925,6 +955,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       renameCategory,
       deleteCategory,
       reorderCategory,
+      moveCategoryBefore,
       addEvent,
       updateEvent,
       deleteEvent,
@@ -951,6 +982,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       renameCategory,
       deleteCategory,
       reorderCategory,
+      moveCategoryBefore,
       addEvent,
       updateEvent,
       deleteEvent,

@@ -3,33 +3,23 @@ import { CalendarDays, MapPin, Plus } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
 import { APP_TODAY, parseDate } from "@/lib/date";
-import { dateAtMinutes, startOfDay, toLocalIso, ymd } from "@/lib/calendar";
+import { ymd } from "@/lib/calendar";
 import { Button } from "@/components/ui/button";
 import { Agenda } from "@/features/calendar/Agenda";
 
 /**
  * カレンダー（予定専用）。週/日の切替・時間グリッドは廃止し、無限スクロールのアジェンダに一本化。
  * 仕様 §3.5: 連続した日次リストで予定を確認する。各日にシフト（勤務地）チップを併置。
- * 時間の変更は予定詳細パネル（datetime-local）で行う。
+ * 予定の追加/編集は保存ボタン式モーダル（EventDetailPanel）で行う。
+ * 締切を設定したタスクも、その締切日のリストに表示する（クリックでタスク詳細へ）。
  */
 export function Calendar() {
-  const { events, shiftTypes, shifts, addEvent, setShift } = useAppData();
-  const { openEvent, openEventDraft, openShiftTypes } = useOverlay();
+  const { tasks, events, shiftTypes, shifts, setShift } = useAppData();
+  const { openEvent, openEventCreate, openTask, openShiftTypes } = useOverlay();
 
   const todayYmd = ymd(parseDate(APP_TODAY));
   // 「今日へ」で Agenda を再マウントして今日へスクロールし直す
   const [agendaKey, setAgendaKey] = useState(0);
-
-  const createDraft = (startIso: string, endIso: string) => {
-    const id = addEvent({ title: "", startAt: startIso, endAt: endIso });
-    openEventDraft(id);
-  };
-
-  // ＋予定: 今日 9:00–10:00 の下書きを作って詳細パネルを開く
-  const addToday = () => {
-    const base = startOfDay(parseDate(APP_TODAY));
-    createDraft(toLocalIso(dateAtMinutes(base, 9 * 60)), toLocalIso(dateAtMinutes(base, 10 * 60)));
-  };
 
   return (
     <section className="flex min-h-0 flex-col rounded-lg border border-border bg-card">
@@ -51,7 +41,7 @@ export function Calendar() {
             <MapPin />
             勤務地
           </Button>
-          <Button variant="outline" size="sm" onClick={addToday}>
+          <Button variant="outline" size="sm" onClick={() => openEventCreate(todayYmd)}>
             <Plus />
             予定
           </Button>
@@ -61,11 +51,13 @@ export function Calendar() {
       <Agenda
         key={agendaKey}
         events={events}
+        tasks={tasks}
         shiftTypes={shiftTypes}
         shifts={shifts}
         todayYmd={todayYmd}
         onOpenEvent={openEvent}
-        onCreateAt={createDraft}
+        onOpenTask={openTask}
+        onCreateOn={openEventCreate}
         onSetShift={setShift}
         onManageShifts={openShiftTypes}
       />

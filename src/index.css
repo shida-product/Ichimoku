@@ -55,10 +55,8 @@
   --crit-soft: #f3d6cb;
   --warn: #8a6516; /* 締切 7日以内＝橙 */
   --warn-soft: #efe3c6;
-  --cat-jimu: #6b7c93; /* カテゴリ標準色：事務 */
-  --cat-keiei: #8a6d3b; /* 経営 */
-  --cat-saiyo: #7a5c8e; /* 採用 */
-  --cat-mibun: #9aa29f; /* 未分類 */
+  /* カテゴリ色は各カテゴリの data（Category.color）が正。テーマトークンには持たない。
+     既定パレットが要るときは Board.tsx の CAT_FALLBACK を参照。 */
 
   /* カードの影（暖色インク基調。コンポーネントは token 経由で参照） */
   --shadow-card: 0 1px 2px rgba(42, 38, 32, 0.07);
@@ -99,10 +97,6 @@
   --color-crit-soft: var(--crit-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
-  --color-cat-jimu: var(--cat-jimu);
-  --color-cat-keiei: var(--cat-keiei);
-  --color-cat-saiyo: var(--cat-saiyo);
-  --color-cat-mibun: var(--cat-mibun);
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);

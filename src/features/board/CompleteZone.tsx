@@ -1,5 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import { CircleCheckBig, History } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /** 完了ドロップゾーンの droppable id（cellId と衝突しない固定値） */
@@ -22,27 +23,30 @@ export function CompleteZone({
   const { setNodeRef, isOver } = useDroppable({ id: DONE_ZONE_ID });
 
   return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "border-t border-border px-4 py-2.5 transition-colors",
-        isOver && "bg-accent ring-2 ring-primary/40 ring-inset"
-      )}
-    >
-      <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.05em] text-muted-foreground">
+    <div className="border-t border-border px-4 py-3">
+      {/* 未分類の空ゾーンと同じ破線ドロップゾーンに統一。当たり判定（ref）と
+          ホバー強調（isOver）を BoardCell と同じくこのボックスに一致させる。 */}
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "flex min-h-[64px] items-center gap-2 rounded-md border border-dashed border-border px-3 py-3 text-[11px] font-medium tracking-[0.05em] text-muted-foreground transition-colors",
+          isOver && "border-transparent bg-accent ring-2 ring-primary/40"
+        )}
+      >
         <CircleCheckBig className="size-3.5" />
         完了
         <span className="text-ink-3">{totalCount}</span>
         <span className="font-normal text-ink-3">ここにドロップで消化</span>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
           onClick={onOpenHistory}
-          className="ml-auto inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 font-normal text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title="完了履歴を開く"
         >
-          <History className="size-3.5" />
+          <History />
           履歴
-        </button>
+        </Button>
       </div>
     </div>
   );
