@@ -62,6 +62,8 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 - 手動: `TaskDetailPanel` の done タスクに「アーカイブ」操作を追加（7日待たずローカル検証可能）。
 - 残: 実 DB での検証、および仕様 §3.1 の「アーカイブ一覧から参照」UI（v1 では未実装＝アーカイブ後は UI から見えなくなる。DB には残る）。N=7 の最終確定も要相談（仕様 Open Question）。
 
+- Tampermonkey クイック追加（`tampermonkey/ichimoku-quick-add.user.js`）: 全サイトで動く端タブ式の素早いタスク投入。Supabase REST に直接 INSERT（本体モックとは独立）。普段は端の細い帯、クリックで追加パネル、上下ドラッグ移動＋左右端スナップ（位置は `GM_setValue` 保持）。認証は**本体アプリのログイン済みセッションを連携**（第三者ページでパスワードを入力させない／`localStorage` の `sb-<ref>-auth-token` を読み GM 共有・自動リフレッシュ。PR #2 のセキュリティ指摘 P1 反映）。`position` は fractional index 本実装（#2）までタイムスタンプ文字列の暫定。利用には Supabase 稼働＋スクリプト冒頭の URL/anon key 設定が必要（`tampermonkey/README.md`）。
+
 ## Next Actions
 
 | 優先 | タスク                                                                                                                                          | 状態 |
