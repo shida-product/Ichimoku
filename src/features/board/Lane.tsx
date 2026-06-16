@@ -4,6 +4,7 @@ import type { Task } from "@/lib/types";
 import { BoardCell, cellId } from "@/features/board/BoardCell";
 import { CATEGORY_PREFIX } from "@/features/board/BoardDndProvider";
 import { TaskCard } from "@/features/board/TaskCard";
+import { tint } from "@/lib/palette";
 import { cn } from "@/lib/utils";
 
 /**
@@ -85,7 +86,7 @@ export function Lane({
         )}
       >
         {/* 見出し帯（左にドラッグハンドル＝列移動、本体クリックで折りたたみ） */}
-        <div className="flex items-stretch" style={{ backgroundColor: `${color}2e` }}>
+        <div className="flex items-stretch" style={{ backgroundColor: tint(color, 18) }}>
           <button
             type="button"
             aria-label="列をドラッグして並べ替え"
@@ -114,7 +115,7 @@ export function Lane({
       <button
         type="button"
         onClick={onToggle}
-        style={{ backgroundColor: `${color}2e` }}
+        style={{ backgroundColor: tint(color, 18) }}
         className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 select-none"
       >
         {title}

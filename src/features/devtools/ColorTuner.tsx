@@ -44,12 +44,144 @@ const ROWS: Row[] = [
   { k: "--crit-soft", label: "緊急 淡色" },
   { k: "--warn", label: "注意・橙（7日以内）" },
   { k: "--warn-soft", label: "注意 淡色" },
-  // 注: カテゴリ色はテーマトークンではなく各カテゴリの data（Category.color）が正。
-  //     ColorTuner は index.css のテーマトークン専用とし、カテゴリ色は扱わない。
+  { group: "分類色（カテゴリ/勤務地）" },
+  // カテゴリ/勤務地が自前の色を持たないときのフォールバック。テーマで一括切替する。
+  // 各データ固有の色（Category.color / ShiftType.color）はここでは扱わない（data が正）。
+  { k: "--cat-1", label: "分類 1" },
+  { k: "--cat-2", label: "分類 2" },
+  { k: "--cat-3", label: "分類 3" },
+  { k: "--cat-4", label: "分類 4" },
+  { k: "--cat-5", label: "分類 5" },
+  { k: "--cat-6", label: "分類 6" },
+  { k: "--cat-uncat", label: "未分類・中立" },
 ];
 
 const TOKEN_DEFS = ROWS.filter((r): r is TokenDef => "k" in r);
 const LS_KEY = "ichimoku-color-tuner-v1";
+
+/**
+ * 配色プリセット（比較用の候補パターン）。
+ * - ① 現状（案1 ウォーム）は index.css 自身が真実なので preset には持たず、
+ *   「現状」ボタンは resetToCss（index.css の採用色へ戻す）に割り当てる。
+ * - ②〜⑤ は候補。値はここに集約し、選ぶと全トークン＋角丸を一括適用する。
+ *   採用したいものが決まったら ColorTuner の「コピー」で index.css に貼る。
+ */
+type Preset = { id: string; label: string; values: Record<string, string>; radiusPx: number };
+
+const PRESETS: Preset[] = [
+  {
+    id: "google",
+    label: "② Google",
+    radiusPx: 8,
+    values: {
+      "--background": "#f8f9fa",
+      "--card": "#ffffff",
+      "--secondary": "#f1f3f4",
+      "--foreground": "#202124",
+      "--muted-foreground": "#5f6368",
+      "--ink-3": "#80868b",
+      "--border": "#dadce0",
+      "--input": "#c0c4c9",
+      "--primary": "#1a73e8",
+      "--accent": "#e8f0fe",
+      "--crit": "#d93025",
+      "--crit-soft": "#fce8e6",
+      "--warn": "#e37400",
+      "--warn-soft": "#fef0c8",
+      "--cat-1": "#039be5",
+      "--cat-2": "#0b8043",
+      "--cat-3": "#f4511e",
+      "--cat-4": "#8e24aa",
+      "--cat-5": "#f6bf26",
+      "--cat-6": "#7986cb",
+      "--cat-uncat": "#616161",
+    },
+  },
+  {
+    id: "google-soft",
+    label: "③ Google 淡",
+    radiusPx: 10,
+    values: {
+      "--background": "#ffffff",
+      "--card": "#ffffff",
+      "--secondary": "#f6f8fc",
+      "--foreground": "#3c4043",
+      "--muted-foreground": "#70757a",
+      "--ink-3": "#9aa0a6",
+      "--border": "#e8eaed",
+      "--input": "#dadce0",
+      "--primary": "#4285f4",
+      "--accent": "#f0f5ff",
+      "--crit": "#ea4335",
+      "--crit-soft": "#fdeceb",
+      "--warn": "#f9ab00",
+      "--warn-soft": "#fef7e0",
+      "--cat-1": "#4fc3f7",
+      "--cat-2": "#66bb6a",
+      "--cat-3": "#ff8a65",
+      "--cat-4": "#ba68c8",
+      "--cat-5": "#ffd54f",
+      "--cat-6": "#9fa8da",
+      "--cat-uncat": "#9e9e9e",
+    },
+  },
+  {
+    id: "slate",
+    label: "④ スレート",
+    radiusPx: 10,
+    values: {
+      "--background": "#f4f6f8",
+      "--card": "#ffffff",
+      "--secondary": "#eceff3",
+      "--foreground": "#1f2733",
+      "--muted-foreground": "#59616e",
+      "--ink-3": "#8b94a1",
+      "--border": "#dde2e8",
+      "--input": "#c6cdd6",
+      "--primary": "#2f7d8a",
+      "--accent": "#e2f1f3",
+      "--crit": "#d64545",
+      "--crit-soft": "#fbe3e3",
+      "--warn": "#b7791f",
+      "--warn-soft": "#f6ecd5",
+      "--cat-1": "#5b8aa6",
+      "--cat-2": "#6b8f7a",
+      "--cat-3": "#8a7aa6",
+      "--cat-4": "#a6845b",
+      "--cat-5": "#9c6b78",
+      "--cat-6": "#6d7f8f",
+      "--cat-uncat": "#94a0ab",
+    },
+  },
+  {
+    id: "sage",
+    label: "⑤ セージ",
+    radiusPx: 8,
+    values: {
+      "--background": "#f4f5f0",
+      "--card": "#fcfcf8",
+      "--secondary": "#eaece3",
+      "--foreground": "#232a22",
+      "--muted-foreground": "#565e51",
+      "--ink-3": "#8a9183",
+      "--border": "#d9ddd0",
+      "--input": "#c3c9b8",
+      "--primary": "#3f6f4e",
+      "--accent": "#e3eee2",
+      "--crit": "#b23a2e",
+      "--crit-soft": "#f3dcd6",
+      "--warn": "#8a6516",
+      "--warn-soft": "#eee5cd",
+      "--cat-1": "#5a8a5e",
+      "--cat-2": "#8a7d3b",
+      "--cat-3": "#7d6a8e",
+      "--cat-4": "#3f8072",
+      "--cat-5": "#9a6b5b",
+      "--cat-6": "#6b8a6f",
+      "--cat-uncat": "#97a08e",
+    },
+  },
+];
 
 function linksOf(def: TokenDef): string[] {
   return def.link ?? [];
@@ -177,6 +309,13 @@ export function ColorTuner() {
     setRadiusPx(readBaseRadiusPx());
   }, []);
 
+  // プリセット（②〜⑤）を一括適用。未指定トークンは現状維持。
+  const applyPreset = useCallback((p: Preset) => {
+    touched.current = true;
+    setValues((prev) => ({ ...prev, ...p.values }));
+    setRadiusPx(p.radiusPx);
+  }, []);
+
   const exportCss = useMemo(() => {
     const g = (k: string) => values[k] ?? "#000000";
     return `:root {
@@ -217,6 +356,15 @@ export function ColorTuner() {
   --crit-soft: ${g("--crit-soft")};
   --warn: ${g("--warn")};
   --warn-soft: ${g("--warn-soft")};
+
+  /* 分類色（カテゴリ/勤務地のフォールバック） */
+  --cat-1: ${g("--cat-1")};
+  --cat-2: ${g("--cat-2")};
+  --cat-3: ${g("--cat-3")};
+  --cat-4: ${g("--cat-4")};
+  --cat-5: ${g("--cat-5")};
+  --cat-6: ${g("--cat-6")};
+  --cat-uncat: ${g("--cat-uncat")};
 }`;
   }, [values, radiusPx]);
 
@@ -327,6 +475,43 @@ export function ColorTuner() {
       </div>
 
       <div style={{ padding: "12px 14px 40px" }}>
+        <div
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.12em",
+            color: SUBTXT,
+            margin: "4px 0 8px",
+            paddingBottom: 4,
+            borderBottom: "1px solid #322c22",
+          }}
+        >
+          プリセット（候補パターン）
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+          <button
+            type="button"
+            onClick={resetToCss}
+            title="① 現状（案1 ウォーム＝index.css の採用色）に戻す"
+            style={{ ...btnStyle, fontSize: 11, padding: "6px 9px" }}
+          >
+            ① 現状
+          </button>
+          {PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => applyPreset(p)}
+              title={`${p.label} を適用`}
+              style={{ ...btnStyle, fontSize: 11, padding: "6px 9px" }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <p style={{ fontSize: 10, color: SUBTXT, margin: "0 0 4px", lineHeight: 1.6 }}>
+          適用後も各トークンを個別に微調整できます。気に入ったら「コピー」で index.css へ。
+        </p>
+
         {ROWS.map((row, i) =>
           "group" in row ? (
             <div

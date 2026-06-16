@@ -27,7 +27,7 @@ function catColor(c: Category, index: number): string {
  */
 export function Board() {
   const { categories, archivedTasks, addTask } = useAppData();
-  const { orderedTasks } = useBoardOrder();
+  const { orderedTasks, orderedCategories } = useBoardOrder();
   const { openTaskDraft, openHistory } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [quick, setQuick] = useState("");
@@ -66,18 +66,21 @@ export function Board() {
 
   const uncategorized = orderedTasks(UNCAT_KEY);
 
+  // ドラッグ中はライブ並び（push 挙動）、非ドラッグ時は base 並びを返す。
+  const orderedCats = orderedCategories(categories);
+  // 色はカテゴリ固有で安定させる（ライブ並べ替えで色が入れ替わらないよう、
+  // 確定済み categories の index を使う）。
+  const colorIndex = new Map(categories.map((c, i) => [c.id, i] as const));
+
   // 空き列ができて右側が間延びしないよう、列数はカテゴリ数を上限にする。
-  const effectiveCols = Math.max(1, Math.min(colCount, categories.length));
+  const effectiveCols = Math.max(1, Math.min(colCount, orderedCats.length));
 
   // カテゴリを round-robin で effectiveCols 列に振り分ける（列分配マソンリー）。
   // index i → 列 i % effectiveCols。各列は中身の高さで独立に縦積みされるため、
   // あふれた分は先頭列の真下に自然に潜り込む。
-  const columns: { cat: Category; index: number }[][] = Array.from(
-    { length: effectiveCols },
-    () => []
-  );
-  categories.forEach((cat, index) => {
-    columns[index % effectiveCols].push({ cat, index });
+  const columns: Category[][] = Array.from({ length: effectiveCols }, () => []);
+  orderedCats.forEach((cat, index) => {
+    columns[index % effectiveCols].push(cat);
   });
 
   return (
@@ -129,23 +132,23 @@ export function Board() {
         {/* カテゴリはカンバン型カラム。1 行あたり最大 3 列で、枠幅に応じて 1〜3 列に
             レスポンシブ。横スクロールせず、各列は中身の高さで独立に縦積み（列分配マソンリー）。
             これで 4 つ目以降は最初の列の真下へ自然に潜り込む。ハンドルで列ごと並べ替え可。 */}
-        {categories.length > 0 && (
+        {orderedCats.length > 0 && (
           <div className="flex items-start gap-3 px-4 pt-3 pb-3">
             <SortableContext
-              items={categories.map((c) => CATEGORY_PREFIX + c.id)}
+              items={orderedCats.map((c) => CATEGORY_PREFIX + c.id)}
               strategy={rectSortingStrategy}
             >
               {columns.map((col, ci) => (
                 // レーンは快適幅で頭打ち（max-w）。横幅が余ってもレーンを伸ばさず
                 // 右側を余白にする＝カテゴリが少なくても間延びしない。
                 <div key={ci} className="flex min-w-0 max-w-[340px] flex-1 flex-col gap-3">
-                  {col.map(({ cat, index }) => (
+                  {col.map((cat) => (
                     <Lane
                       key={cat.id}
                       variant="column"
                       categoryKey={cat.id}
                       name={cat.name}
-                      color={catColor(cat, index)}
+                      color={catColor(cat, colorIndex.get(cat.id) ?? 0)}
                       tasks={orderedTasks(cat.id)}
                       collapsed={collapsed.has(cat.id)}
                       onToggle={() => toggle(cat.id)}

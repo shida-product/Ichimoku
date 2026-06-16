@@ -24,7 +24,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { useAppData } from "@/store/AppDataContext";
-import type { Task } from "@/lib/types";
+import type { Category, Task } from "@/lib/types";
 import { DueChip } from "@/features/board/TaskCard";
 import { parseCellId } from "@/features/board/BoardCell";
 import { DONE_ZONE_ID } from "@/features/board/CompleteZone";
@@ -71,7 +71,12 @@ const removeFromContainers = (c: Containers, id: string): Containers =>
 
 // ── ボードの並び順を配るコンテキスト ──────────────────────────────
 // ドラッグ中は override（ライブの並び）を、非ドラッグ時は tasks 由来の base を返す。
-type BoardOrderCtx = { orderedTasks: (containerKey: string) => Task[] };
+// カテゴリ列の並べ替えもタスクと同じく override 方式（実配列を並べ替えて再描画）で、
+// 残りのカテゴリを押しのけるライブ挙動にする（transform は使わない＝マソンリーと両立）。
+type BoardOrderCtx = {
+  orderedTasks: (containerKey: string) => Task[];
+  orderedCategories: (cats: Category[]) => Category[];
+};
 const OrderCtx = createContext<BoardOrderCtx | null>(null);
 
 export function useBoardOrder(): BoardOrderCtx {
@@ -93,6 +98,8 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
     useAppData();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [override, setOverride] = useState<Containers | null>(null);
+  // カテゴリ列のライブ並び順（ドラッグ中のみ。null=未ドラッグ＝base に従う）
+  const [catOverride, setCatOverride] = useState<string[] | null>(null);
   const draggingRef = useRef(false);
   const [toast, setToast] = useState<{ id: string; title: string } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,6 +111,30 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!draggingRef.current) setOverride(null);
   }, [tasks]);
+
+  // カテゴリ並べ替えの楽観更新（moveCategoryBefore）で categories が変わったら
+  // catOverride を破棄し真実値へ追従（戻りフレーム防止）。
+  useEffect(() => {
+    if (!draggingRef.current) setCatOverride(null);
+  }, [categories]);
+
+  // position 昇順のカテゴリ id（base 並び）。
+  const baseCatIds = useMemo(
+    () =>
+      [...categories]
+        .sort((a, b) => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0))
+        .map((c) => c.id),
+    [categories]
+  );
+  const catOrder = catOverride ?? baseCatIds;
+
+  const orderedCategories = useCallback(
+    (cats: Category[]): Category[] => {
+      const map = new Map(cats.map((c) => [c.id, c] as const));
+      return catOrder.map((id) => map.get(id)).filter((c): c is Category => Boolean(c));
+    },
+    [catOrder]
+  );
 
   const byId = useMemo(() => new Map(tasks.map((t) => [t.id, t] as const)), [tasks]);
 
@@ -156,9 +187,13 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
     const id = String(e.active.id);
     setActiveId(id);
     draggingRef.current = true;
-    // 近日締切（完了ゾーン専用）・カテゴリ列（横 SortableContext が自動アニメ）は
-    // タスクの override 対象外。
-    if (id.startsWith(DEADLINE_PREFIX) || id.startsWith(CATEGORY_PREFIX)) return;
+    // カテゴリ列はカテゴリ用 override（ライブ並び）を初期化。
+    if (id.startsWith(CATEGORY_PREFIX)) {
+      setCatOverride(baseCatIds);
+      return;
+    }
+    // 近日締切（完了ゾーン専用）はタスクの override 対象外。
+    if (id.startsWith(DEADLINE_PREFIX)) return;
     setOverride(cloneContainers(base));
   };
 
@@ -166,8 +201,27 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
     const { active, over } = e;
     if (!over) return;
     const activeKey = String(active.id);
-    if (activeKey.startsWith(DEADLINE_PREFIX) || activeKey.startsWith(CATEGORY_PREFIX)) return;
     const overKey = String(over.id);
+
+    // カテゴリ列のドラッグ: ライブ並びを arrayMove で更新＝残りのカテゴリが押しのける。
+    // over はカテゴリ列のほか、その中のカード/空セルでも可（findContainer で列へ解決）。
+    if (activeKey.startsWith(CATEGORY_PREFIX)) {
+      const a = activeKey.slice(CATEGORY_PREFIX.length);
+      const o = overKey.startsWith(CATEGORY_PREFIX)
+        ? overKey.slice(CATEGORY_PREFIX.length)
+        : findContainer(overKey);
+      if (!o || o === UNCAT_KEY || o === a || !baseCatIds.includes(o)) return;
+      setCatOverride((prev) => {
+        const cur = prev ?? baseCatIds;
+        const from = cur.indexOf(a);
+        const to = cur.indexOf(o);
+        if (from < 0 || to < 0 || from === to) return prev;
+        return arrayMove(cur, from, to);
+      });
+      return;
+    }
+
+    if (activeKey.startsWith(DEADLINE_PREFIX)) return;
 
     const activeC = findContainer(activeKey);
     const overC = findContainer(overKey);
@@ -209,27 +263,24 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
     if (!over) {
       endDrag();
       setOverride(null);
+      setCatOverride(null);
       return;
     }
     const overKey = String(over.id);
 
-    // カテゴリ列の並べ替え（横方向）。over のカテゴリの直前へ挿入する位置を確定。
+    // カテゴリ列の並べ替え: ライブ並び（catOverride）の最終順で永続化する。
+    // over の次のカテゴリの直前へ挿入（末尾なら null）。catOverride は categories
+    // 反映後に effect が破棄するため、ここでは消さない（戻りフレーム防止）。
     if (activeKey.startsWith(CATEGORY_PREFIX)) {
       endDrag();
       const activeCatId = activeKey.slice(CATEGORY_PREFIX.length);
-      const overCatId = overKey.startsWith(CATEGORY_PREFIX)
-        ? overKey.slice(CATEGORY_PREFIX.length)
-        : null;
-      if (!overCatId || overCatId === activeCatId) return;
-      const sorted = [...categories].sort((a, b) =>
-        a.position < b.position ? -1 : a.position > b.position ? 1 : 0
-      );
-      const oldIndex = sorted.findIndex((c) => c.id === activeCatId);
-      const overIndex = sorted.findIndex((c) => c.id === overCatId);
-      if (oldIndex < 0 || overIndex < 0) return;
-      const finalOrder = arrayMove(sorted, oldIndex, overIndex);
-      const pos = finalOrder.findIndex((c) => c.id === activeCatId);
-      const beforeId = pos + 1 < finalOrder.length ? finalOrder[pos + 1].id : null;
+      const order = catOverride ?? baseCatIds;
+      const pos = order.indexOf(activeCatId);
+      if (pos < 0) {
+        setCatOverride(null);
+        return;
+      }
+      const beforeId = pos + 1 < order.length ? order[pos + 1] : null;
       moveCategoryBefore(activeCatId, beforeId);
       return;
     }
@@ -304,6 +355,7 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
   const handleDragCancel = () => {
     endDrag();
     setOverride(null);
+    setCatOverride(null);
   };
 
   const activeCategory = activeId?.startsWith(CATEGORY_PREFIX)
@@ -318,7 +370,7 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
   const activeTask = activeTaskId ? byId.get(activeTaskId) : undefined;
 
   return (
-    <OrderCtx.Provider value={{ orderedTasks }}>
+    <OrderCtx.Provider value={{ orderedTasks, orderedCategories }}>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}

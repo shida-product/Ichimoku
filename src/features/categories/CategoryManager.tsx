@@ -59,7 +59,7 @@ export function CategoryManager({ onClose }: { onClose: () => void }) {
             >
               <span
                 className="ml-1 size-2.5 shrink-0 rounded-[3px]"
-                style={{ background: c.color ?? CAT_FALLBACK[i % CAT_FALLBACK.length] }}
+                style={{ background: c.color ?? paletteVar(i) }}
               />
               <AutoInput
                 value={c.name}

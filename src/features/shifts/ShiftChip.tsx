@@ -3,6 +3,7 @@ import { Plus, Settings } from "lucide-react";
 import type { ShiftType } from "@/lib/types";
 import { AnchoredPopover } from "@/components/overlay/AnchoredPopover";
 import { shiftColor } from "@/features/shifts/shiftColors";
+import { tint } from "@/lib/palette";
 import { cn } from "@/lib/utils";
 
 /**
@@ -37,8 +38,8 @@ export function ShiftChip({
       title="シフトを変更"
       className="inline-flex max-w-[7.5rem] cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
       style={{
-        borderColor: `${shiftColor(current, currentIdx)}66`,
-        backgroundColor: `${shiftColor(current, currentIdx)}1f`,
+        borderColor: tint(shiftColor(current, currentIdx), 40),
+        backgroundColor: tint(shiftColor(current, currentIdx), 12),
       }}
     >
       <span
