@@ -2,6 +2,17 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-17] ②Google配色を正式採用し、他候補と色味調整ポータルを廃止
+
+- **判断背景**:
+  - 5 パターンの配色検討から「② Google」を採用し、フロントエンド確定へ進めるため候補切替の余地を閉じる。
+  - 開発用の色味調節ポータルは役目を終えたため、保守対象から外す。
+- **変更点**:
+  - `src/index.css` の正本トークンを Google 系ニュートラル地＋白面＋Google Blue アクセントへ固定。分類色 `--cat-1..6` も Google 系スロットへ更新。
+  - `src/features/devtools/ColorTuner.tsx` を削除し、`AppShell` の DEV 専用呼び出しも撤去。他候補プリセットは廃止。
+  - `docs/design.md` と関連コメントを Google 固定方針に同期。
+- **検証状況**: `npm.cmd run lint` 0 error（既存 Fast Refresh warnings のみ）/ `npm.cmd run build` 成功 / 変更対象 Prettier check 成功。ブラウザで desktop と 390px 幅を確認し、Google 配色の CSS 変数反映・色味調節ポータル非表示・横 overflow なしを確認。
+
 ## [2026-06-17] UI 操作の共通化（管理パネル統合・詳細フッター統一）
 
 - **判断背景**:
