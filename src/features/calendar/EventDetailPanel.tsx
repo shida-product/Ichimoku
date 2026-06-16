@@ -230,7 +230,7 @@ export function EventDetailPanel({
         <span className="mb-1.5 block text-xs text-muted-foreground">メモ</span>
         <AutoTextarea
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onValueChange={setNotes}
           placeholder="補足"
           className="min-h-[64px]"
         />

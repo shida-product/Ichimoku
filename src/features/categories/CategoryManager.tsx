@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
-import { PanelShell, fieldClass } from "@/features/_shared/panel";
-
-const CAT_FALLBACK = ["#6b7c93", "#8a6d3b", "#7a5c8e", "#3f7e72", "#9a6b6b", "#6b8a7a"];
+import { AutoInput, PanelShell, fieldClass } from "@/features/_shared/panel";
+import { paletteVar } from "@/lib/palette";
 
 /** カテゴリ管理（side-peek・共通枠）。作成・リネーム・並べ替え・削除。 */
 export function CategoryManager({ onClose }: { onClose: () => void }) {
@@ -32,7 +31,7 @@ export function CategoryManager({ onClose }: { onClose: () => void }) {
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()}
+          onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && add()}
           placeholder="新しいカテゴリ名"
           className={fieldClass}
         />
@@ -62,9 +61,9 @@ export function CategoryManager({ onClose }: { onClose: () => void }) {
                 className="ml-1 size-2.5 shrink-0 rounded-[3px]"
                 style={{ background: c.color ?? CAT_FALLBACK[i % CAT_FALLBACK.length] }}
               />
-              <input
+              <AutoInput
                 value={c.name}
-                onChange={(e) => renameCategory(c.id, e.target.value)}
+                onValueChange={(v) => renameCategory(c.id, v)}
                 className="min-w-0 flex-1 bg-transparent px-1 py-1 text-[13px] outline-none focus:bg-secondary"
               />
               <span className="shrink-0 px-1 text-[11px] text-ink-3">{countOf(c.id)}</span>

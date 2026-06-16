@@ -1,7 +1,13 @@
 import { ExternalLink, Plus, Star, Trash2, Undo2, X } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { isFlagged, type TaskLink } from "@/lib/types";
-import { AutoTextarea, PanelShell, fieldClass, useSavedFlash } from "@/features/_shared/panel";
+import {
+  AutoInput,
+  AutoTextarea,
+  PanelShell,
+  fieldClass,
+  useSavedFlash,
+} from "@/features/_shared/panel";
 
 /**
  * 入力 URL を開ける形に正規化する。`http(s)://` 省略時は `https://` を補い、
@@ -83,9 +89,9 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
   return (
     <PanelShell label="タスク" saved={saved} onClose={onClose} footer={footer}>
       {/* タイトル */}
-      <input
+      <AutoInput
         value={task.title}
-        onChange={(e) => patch({ title: e.target.value })}
+        onValueChange={(v) => patch({ title: v })}
         autoFocus={task.title === ""}
         className="border-b border-border pb-1.5 text-base font-medium outline-none focus:border-ring"
         placeholder="タイトル"
@@ -96,7 +102,7 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
         <span className="mb-1.5 block text-xs text-muted-foreground">メモ</span>
         <AutoTextarea
           value={task.description}
-          onChange={(e) => patch({ description: e.target.value })}
+          onValueChange={(v) => patch({ description: v })}
           placeholder="補足や手順（プレーンテキスト）"
           className="min-h-[64px]"
         />
@@ -110,15 +116,15 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
             const href = toHref(link.url);
             return (
               <div key={i} className="flex items-center gap-1.5">
-                <input
+                <AutoInput
                   value={link.title}
-                  onChange={(e) => setLink(i, "title", e.target.value)}
+                  onValueChange={(v) => setLink(i, "title", v)}
                   placeholder="ラベル（任意）"
                   className={fieldClass}
                 />
-                <input
+                <AutoInput
                   value={link.url}
-                  onChange={(e) => setLink(i, "url", e.target.value)}
+                  onValueChange={(v) => setLink(i, "url", v)}
                   placeholder="https://…"
                   className={`${fieldClass} text-primary`}
                 />

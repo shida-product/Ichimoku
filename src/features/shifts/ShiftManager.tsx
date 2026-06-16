@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
-import { PanelShell, fieldClass } from "@/features/_shared/panel";
-import { SHIFT_FALLBACK, shiftColor } from "@/features/shifts/shiftColors";
+import { AutoInput, PanelShell, fieldClass } from "@/features/_shared/panel";
+import { shiftColor } from "@/features/shifts/shiftColors";
+import { CAT_PALETTE_VARS, toHex } from "@/lib/palette";
 
 /** 勤務地（シフト種別）管理。作成・リネーム・色変更・並べ替え・削除。カテゴリ管理と同型。 */
 export function ShiftManager({ onClose }: { onClose: () => void }) {
@@ -31,7 +32,7 @@ export function ShiftManager({ onClose }: { onClose: () => void }) {
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()}
+          onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && add()}
           placeholder="新しい勤務地・シフト名（例: 渋谷店 / 休み）"
           className={fieldClass}
         />
@@ -64,15 +65,15 @@ export function ShiftManager({ onClose }: { onClose: () => void }) {
               >
                 <input
                   type="color"
-                  value={shiftColor(s, i)}
+                  value={toHex(shiftColor(s, i))}
                   onChange={(e) => updateShiftType(s.id, { color: e.target.value })}
                   className="absolute inset-0 cursor-pointer opacity-0"
                   aria-label={`${s.name} の色`}
                 />
               </label>
-              <input
+              <AutoInput
                 value={s.name}
-                onChange={(e) => updateShiftType(s.id, { name: e.target.value })}
+                onValueChange={(v) => updateShiftType(s.id, { name: v })}
                 className="min-w-0 flex-1 bg-transparent px-1 py-1 text-[13px] outline-none focus:bg-secondary"
               />
               <span className="shrink-0 px-1 text-[11px] text-ink-3" title="割当日数">
@@ -112,7 +113,7 @@ export function ShiftManager({ onClose }: { onClose: () => void }) {
       {/* 色サンプル（選びやすさのための補助・任意） */}
       <div className="flex flex-wrap gap-1.5">
         <span className="w-full text-[11px] text-muted-foreground">標準色</span>
-        {SHIFT_FALLBACK.map((c) => (
+        {CAT_PALETTE_VARS.map((c) => (
           <span key={c} className="size-4 rounded" style={{ background: c }} title={c} />
         ))}
       </div>

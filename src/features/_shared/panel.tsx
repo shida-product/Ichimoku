@@ -11,32 +11,97 @@ export const fieldClass =
   "w-full rounded-md border border-input bg-card px-2.5 py-2 text-[13px] outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/25 placeholder:text-ink-3";
 
 /**
- * 内容の文字数・行数に合わせて高さが自動で伸縮する textarea。
+ * 自動保存テキスト入力を IME（日本語変換）セーフにする共通フック。
+ *
+ * 問題: 自動保存は onChange ごとにストア更新 → 再レンダーする。変換確定前に
+ * value が外から差し替わると IME の変換が中断され「途中で確定」してしまう。
+ *
+ * 対策:
+ * - 表示値は**ローカル state** で持ち、再レンダーで打鍵中の文字が消えないようにする。
+ * - compositionstart〜end の間はストアへ伝播しない（確定時にまとめて伝播）。
+ * - 入力にフォーカス中・変換中は外部 value での上書きを抑止する。
+ */
+function useAutoField(value: string, onValueChange: (v: string) => void) {
+  const [local, setLocal] = useState(value);
+  const composing = useRef(false);
+  const focused = useRef(false);
+
+  // 外部からの値変更（別レコードを開いた等）は、入力中・変換中でなければ反映。
+  useEffect(() => {
+    if (!focused.current && !composing.current) setLocal(value);
+  }, [value]);
+
+  return {
+    value: local,
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setLocal(e.target.value);
+      if (!composing.current) onValueChange(e.target.value);
+    },
+    onCompositionStart: () => {
+      composing.current = true;
+    },
+    onCompositionEnd: (e: React.CompositionEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      composing.current = false;
+      onValueChange(e.currentTarget.value);
+    },
+    onFocus: () => {
+      focused.current = true;
+    },
+    onBlur: () => {
+      focused.current = false;
+    },
+  };
+}
+
+/**
+ * IME セーフな自動保存テキスト入力。見た目は呼び出し側の className に委ねる
+ * （タイトルの下線・フィールド枠など用途で異なるため。共通枠が要るなら `fieldClass` を渡す）。
+ */
+export function AutoInput({
+  value,
+  onValueChange,
+  className,
+  ...props
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> & {
+  value: string;
+  onValueChange: (v: string) => void;
+}) {
+  const field = useAutoField(value, onValueChange);
+  return <input {...props} {...field} className={className} />;
+}
+
+/**
+ * 内容の文字数・行数に合わせて高さが自動で伸縮する textarea（IME セーフ）。
  * 入力時はもちろん、value 変更（パネルを閉じて開き直した際の初期表示）でも再計算する。
  * 共通の `fieldClass` を踏襲しつつ、縦の手動リサイズは無効化（自動制御に統一）。
  */
 export function AutoTextarea({
   value,
+  onValueChange,
   className,
   ...props
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { value: string }) {
+}: Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange"> & {
+  value: string;
+  onValueChange: (v: string) => void;
+}) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const field = useAutoField(value, onValueChange);
 
-  // レイアウト確定前に高さを合わせ、初回表示のちらつきを防ぐ。
+  // レイアウト確定前に高さを合わせ、初回表示のちらつきを防ぐ。表示値（field.value）に追従。
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
+  }, [field.value]);
 
   return (
     <textarea
       ref={ref}
-      value={value}
       rows={1}
-      className={`${fieldClass} resize-none overflow-hidden ${className ?? ""}`}
       {...props}
+      {...field}
+      className={`${fieldClass} resize-none overflow-hidden ${className ?? ""}`}
     />
   );
 }
