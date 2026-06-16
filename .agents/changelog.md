@@ -2,6 +2,17 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-17] 不要ファイルと未使用依存の整理
+
+- **判断背景**:
+  - フロントエンドが概ね固まったため、参照されていないテンプレート由来アセットと現在構成で不要な直接依存を削り、保守対象を減らす。
+  - Codex 用 `.agents/skills/session-*` は今後のエージェント導線に関わる可能性があるため、不要と断定せず今回の削除対象から外した。
+- **変更点**:
+  - 未使用アセット `src/assets/hero.png` / `src/assets/react.svg` / `src/assets/vite.svg` / `public/icons.svg` を削除。
+  - 未使用依存 `@fontsource-variable/geist` と、現行 Vite Tailwind 構成では直接参照しない `@tailwindcss/postcss` / `autoprefixer` / `postcss` を削除。
+  - 空ディレクトリ `design-explorations/` をローカルから削除。
+- **検証状況**: `npm.cmd run lint` 0 error（既存 Fast Refresh warnings のみ）/ `npm.cmd run build` 成功 / `npx.cmd prettier --check package.json package-lock.json` 成功。`npm.cmd run format` は `.agents/*.md` の EPERM で終了コード1だが、対象コードは unchanged。
+
 ## [2026-06-17] ②Google配色を正式採用し、他候補と色味調整ポータルを廃止
 
 - **判断背景**:

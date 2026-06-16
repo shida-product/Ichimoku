@@ -19,6 +19,8 @@
 
 ## Current Focus
 
+**不要ファイル/未使用依存の整理（本セッション 2026-06-17）**: フロントエンド8割確定後の保守整理として、参照なしの `src/assets/hero.png` / `src/assets/react.svg` / `src/assets/vite.svg` / `public/icons.svg` を削除。未使用依存 `@fontsource-variable/geist` と、現行 Vite Tailwind 構成では直接使っていない `@tailwindcss/postcss` / `autoprefixer` / `postcss` を削除。空ディレクトリ `design-explorations/` はローカルから削除。検証: `npm.cmd run lint` 0 error（既存 Fast Refresh warnings のみ）/ `npm.cmd run build` 成功 / package files Prettier check 成功。`npm.cmd run format` は既知の `.agents/*.md` EPERM で終了コード1。未追跡 `.agents/skills/session-*` はCodex用導線の可能性があるため今回削除せず、扱いは別途判断。
+
 **②Google配色の正式採用・他候補廃止（本セッション 2026-06-17）**: 5 パターン検討のうち「② Google」を採用。`src/index.css` のセマンティックトークンを Google 系ニュートラル地（`#f8f9fa`）＋白面（`#ffffff`）＋ Google Blue（`#1a73e8`）へ固定し、分類色 `--cat-1..6` も Google 系スロットに差し替え。開発用の色味調節ポータル `src/features/devtools/ColorTuner.tsx` は削除し、`AppShell` の DEV 専用呼び出しも撤去。他候補プリセットは廃止。`docs/design.md` は Google 固定の正本説明へ同期。検証: `npm.cmd run lint` 0 error（既存 Fast Refresh warnings のみ）/ `npm.cmd run build` 成功 / 変更対象 Prettier check 成功。ブラウザで desktop と 390px 幅を確認し、CSS 変数反映・ポータル非表示・横 overflow なし。
 
 **フロントエンド確定前の UI 共通化（本セッション 2026-06-17）**: プレビュー確認段階で「類似した操作は統一実装・見た目の統一感重視」の方針を受け、カテゴリ管理/勤務地管理を新規 `src/features/_shared/ManageListPanel.tsx` に統合。追加・名称編集・色選択・上下移動・削除・件数表示の UI と実装を 1 箇所へ集約した。タスク詳細/予定詳細は仕様差（タスク=自動保存、予定=保存ボタン式）を残しつつ、タイトル入力クラスとフッター配置（`PanelFooterRow`）を共通化し、削除/キャンセル/更新ボタン表現を `Button` に統一。検証: `npm run lint` 0 error（既存 Fast Refresh warnings のみ）、`npm run build` 成功、対象ファイル Prettier check 成功。`npm run format` は `.agents/state/locks.md` の EPERM で最後だけ失敗したが、コード対象は整形済み。ブラウザ確認: desktop と 390px 幅でカテゴリ/勤務地/タスク/予定 side-peek の横 overflow なし。
