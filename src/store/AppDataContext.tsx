@@ -1,14 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type QueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/features/auth/AuthContext";
 import { keyAfter, keyBefore, keyBetween } from "@/lib/order";
 import { toLocalIso } from "@/lib/calendar";
+import { IS_PREVIEW } from "@/lib/preview";
+import { MOCK_CATEGORIES, MOCK_EVENTS, MOCK_TASKS } from "@/store/mockData";
 import type { Category, EventItem, Task, TaskLink, TaskStatus } from "@/lib/types";
 
 /**
@@ -280,20 +277,26 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const tasksKey = ["tasks", userId] as const;
   const eventsKey = ["events", userId] as const;
 
+  // プレビュー時はネットワークを止め、モックを初期データとして注入する。
+  // 以降のミューテーションは Supabase を呼ばずキャッシュ上だけで完結するため、
+  // 楽観的更新がそのまま「永続化」として残り、ログイン無しで全機能を触れる。
   const { data: categories = [] } = useQuery({
     queryKey: categoriesKey,
     queryFn: fetchCategories,
-    enabled: !!userId,
+    enabled: !IS_PREVIEW && !!userId,
+    initialData: IS_PREVIEW ? MOCK_CATEGORIES : undefined,
   });
   const { data: tasks = [] } = useQuery({
     queryKey: tasksKey,
     queryFn: fetchTasks,
-    enabled: !!userId,
+    enabled: !IS_PREVIEW && !!userId,
+    initialData: IS_PREVIEW ? MOCK_TASKS : undefined,
   });
   const { data: events = [] } = useQuery({
     queryKey: eventsKey,
     queryFn: fetchEvents,
-    enabled: !!userId,
+    enabled: !IS_PREVIEW && !!userId,
+    initialData: IS_PREVIEW ? MOCK_EVENTS : undefined,
   });
 
   function requireOwner(): string {
@@ -304,6 +307,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   // ── タスク mutations ──
   const addTaskMut = useMutation({
     mutationFn: async (t: Task) => {
+      if (IS_PREVIEW) return;
       const { error } = await supabase.from("tasks").insert(taskToInsertRow(t, requireOwner()));
       if (error) throw error;
     },
@@ -312,6 +316,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const updateTaskMut = useMutation({
     mutationFn: async (vars: { id: string; patch: Partial<Task> }) => {
+      if (IS_PREVIEW) return;
       const { error } = await supabase
         .from("tasks")
         .update(taskPatchToRow(vars.patch))
@@ -325,6 +330,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTaskMut = useMutation({
     mutationFn: async (id: string) => {
+      if (IS_PREVIEW) return;
       const { error } = await supabase.from("tasks").delete().eq("id", id);
       if (error) throw error;
     },
@@ -333,10 +339,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const archiveTaskMut = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("tasks")
-        .update({ archived_at: nowIso() })
-        .eq("id", id);
+      if (IS_PREVIEW) return;
+      const { error } = await supabase.from("tasks").update({ archived_at: nowIso() }).eq("id", id);
       if (error) throw error;
     },
     // アーカイブ＝ボードから畳む。楽観的にはキャッシュから取り除く（取得時に除外されるため）。
@@ -348,7 +352,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const ts = nowIso();
       // 新規タスクはセル先頭に来るよう、対象セル（未分類×未着手）の先頭より前の position を採番。
       const cell = byPosition(
-        tasks.filter((t) => (t.categoryId ?? null) === (input.categoryId ?? null) && t.status === "todo")
+        tasks.filter(
+          (t) => (t.categoryId ?? null) === (input.categoryId ?? null) && t.status === "todo"
+        )
       );
       const task: Task = {
         id: newId(),
@@ -425,7 +431,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       // 移動先セル（自分自身を除く）を position 昇順で取り出し、挿入位置の前後から新 position を採番。
       const cell = byPosition(
         tasks.filter(
-          (t) => (t.categoryId ?? null) === (categoryId ?? null) && t.status === status && t.id !== id
+          (t) =>
+            (t.categoryId ?? null) === (categoryId ?? null) && t.status === status && t.id !== id
         )
       );
       let position: string;
@@ -450,6 +457,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   // ── カテゴリ mutations ──
   const addCategoryMut = useMutation({
     mutationFn: async (c: Category) => {
+      if (IS_PREVIEW) return;
       const { error } = await supabase.from("categories").insert({
         id: c.id,
         owner_id: requireOwner(),
@@ -459,11 +467,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       });
       if (error) throw error;
     },
-    ...buildOptimistic<Category, Category>(qc, categoriesKey, (prev, c) => byPosition([...prev, c])),
+    ...buildOptimistic<Category, Category>(qc, categoriesKey, (prev, c) =>
+      byPosition([...prev, c])
+    ),
   });
 
   const updateCategoryMut = useMutation({
     mutationFn: async (vars: { id: string; patch: Partial<Category> }) => {
+      if (IS_PREVIEW) return;
       const { error } = await supabase
         .from("categories")
         .update(categoryPatchToRow(vars.patch))
@@ -479,6 +490,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const deleteCategoryMut = useMutation({
     mutationFn: async (id: string) => {
+      if (IS_PREVIEW) return;
       // DB は tasks.category_id を on delete set null で未分類化する。
       const { error } = await supabase.from("categories").delete().eq("id", id);
       if (error) throw error;
@@ -568,6 +580,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   // ── 予定 mutations ──
   const addEventMut = useMutation({
     mutationFn: async (e: EventItem) => {
+      if (IS_PREVIEW) return;
       const { error } = await supabase.from("events").insert(eventToInsertRow(e, requireOwner()));
       if (error) throw error;
     },
@@ -576,6 +589,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const updateEventMut = useMutation({
     mutationFn: async (vars: { id: string; patch: Partial<EventItem> }) => {
+      if (IS_PREVIEW) return;
       const { error } = await supabase
         .from("events")
         .update(eventPatchToRow(vars.patch))
@@ -591,6 +605,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const deleteEventMut = useMutation({
     mutationFn: async (id: string) => {
+      if (IS_PREVIEW) return;
       const { error } = await supabase.from("events").delete().eq("id", id);
       if (error) throw error;
     },

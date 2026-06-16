@@ -2,6 +2,21 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-16] プレビュー目視用モック復活 ＋ UI 改修（週アジェンダ・ボード罫線・完了プール）
+
+- **判断背景**:
+  - 実 Supabase 認証情報が無くてもローカルで全機能を目視チェックできるよう、ユーザー要望でプレビュー時のみメモリ内モックを復活（Supabase 配線時にモックを撤去していたため、プレビューが空表示＋「追加モーダル白紙」になっていた）。
+  - 白紙モーダルの原因は「ドラフト作成→`requireOwner()` で保存失敗→楽観ロールバックでドラフト消滅→パネルが参照先を失う」。mutation を cache-only にすることで同時解消。
+  - あわせてユーザー要望の UI 改修3点（カレンダー週=アジェンダ化／ボード状態列の縦罫線／完了プール方式）。
+- **変更点**:
+  - `src/lib/preview.ts`（新規）: `IS_PREVIEW` を共有化（`App.tsx` の重複定義を統一）。
+  - `src/store/mockData.ts`（新規）＋ `src/store/AppDataContext.tsx`: プレビュー時は各 useQuery に `initialData` 注入＋`enabled:false`、全 mutation 先頭に `if (IS_PREVIEW) return;` で Supabase を呼ばずキャッシュ上で完結（楽観更新が永続化代わり）。本番（実ユーザー）経路は不変。
+  - `src/features/calendar/WeekAgenda.tsx`（新規）＋ `Calendar.tsx`: 週表示を日付ごとのアジェンダ風リストに（時刻は `9:00～9:30` の1段・時刻/タイトル枠の文頭を固定幅で整列）。日表示は TimeGrid（DnD移動・リサイズ）維持。
+  - `src/features/board/{Board,Lane}.tsx`: 状態列の間に 1px の縦罫線（`grid-cols-[1fr_10px_1fr]` のガター中央）。
+  - `src/features/board/CompleteZone.tsx`（新規）＋ `Board.tsx` ＋ `lib/types.ts`(`WORKING_STATUSES`): 各レーンの完了列を撤去し未着手/対応中の2列に。ボード下部の共有ドロップゾーンへドロップ＝完了（記録保持・自動アーカイブ継続）。削除は詳細パネルのまま分離。
+- **検証状況**: `npm run format` / `npm run lint`（既存 react-refresh 警告のみ・0 error）/ `tsc -b` 通過。プレビューでの目視はユーザー実施。
+- **残課題**: 完了プールは仕様 §85/§289（3列ボード）からの UI 逸脱。採用確定後に `task-board-spec-v1.md` 更新＋ADR 起票（handover Next Actions #7）。
+
 ## [2026-06-15] Codex Review 自動指摘 (P1/P2) の修正
 
 - **判断背景**:

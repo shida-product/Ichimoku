@@ -27,14 +27,23 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 - UI 改修（要望反映済み）: 追加・編集を**同一の side-peek 詳細パネルに一本化**（＋ボタンは空の下書きを作って同じパネルを開く・空のまま閉じたら破棄）。共通枠は `src/features/_shared/panel.tsx`。タスク追加=ボード見出し／予定追加=カレンダー見出しに配置。カードはフラット（左色廃止・カテゴリ色はレーンのドット）、メモは2行クランプ表示＋「メモ表示」トグル。見出しのみ明朝（`font-display`／Zen Old Mincho はラテンのみ同梱・日本語は OS 明朝へ）。
 - 補足: `src/components/overlay/AnchoredPopover.tsx` は現状未使用（ポップ採用時の再利用部品として温存）。
 
+**プレビュー目視用モック復活 ＋ UI 改修（本セッション・2026-06-16）**: ログイン無しで全機能を触れるよう、プレビュー時のみメモリ内モックを復活。あわせてユーザー要望で UI を 3 点改修。
+
+- **プレビューモック**: `src/lib/preview.ts` の `IS_PREVIEW`（DEV かつ Supabase 未設定 or `VITE_PREVIEW_MOCK=true`）を新設し `App.tsx` と共有。`src/store/mockData.ts`（カテゴリ3/タスク8/予定6）を `AppDataContext` の各 useQuery に `initialData` で注入し、プレビュー時は `enabled:false` でネットワーク停止。全 mutation 先頭に `if (IS_PREVIEW) return;` を置き **Supabase を呼ばずキャッシュ上だけで完結**（楽観更新がそのまま永続化代わり＝D&D・追加・編集・並べ替え・アーカイブが全部動く）。これで「追加モーダルが白紙」（ドラフト作成→保存失敗→楽観ロールバックで消滅）も解消。
+- **カレンダー週表示をアジェンダ風リスト化**: `src/features/calendar/WeekAgenda.tsx`（新規）。日付セクションを縦に並べ各日の予定を時刻順リスト表示（`9:00～9:30` の1段・時刻枠とタイトル枠の文頭を固定幅 `5.5rem` で揃える）。`Calendar.tsx` で週=WeekAgenda／日=TimeGrid に分岐（日表示の時間グリッド＝DnD移動・リサイズは温存）。
+- **タスクボードの状態列に薄い縦罫線**: 列テンプレートを `grid-cols-[1fr_10px_1fr]`（旧 `gap-2.5`=10px を罫線トラックに置換）にし、10px ガター中央に 1px の `--color-border` 線。見出し行（`Board.tsx`）とセル行（`Lane.tsx`）で同テンプレ＝上下で罫線が通る。
+- **完了プール（共有ドロップゾーン）方式に変更**: 各レーンの `完了` 列を撤去し、ボードを **未着手/対応中の2列**に（`WORKING_STATUSES` を `types.ts` に追加）。ボード下部に固定の `CompleteZone.tsx`（droppable id=`complete-zone`）を新設。カードをドロップ＝`moveTask(id, categoryId, "done")` で完了（記録保持・N日後の自動アーカイブは従来どおり）。直近完了を取り消し線チップで最大8件＋件数＋↶（未着手へ戻す）。`DndContext` をスクロール領域＋固定フッターの両方に拡張。**本当の削除は詳細パネルのまま分離**。
+- ⚠ **仕様逸脱**: 完了プールは仕様 §85/§289（3列ボード）からの UI 変更。採用確定なら `task-board-spec-v1.md` 更新＋ADR が必要（Next Actions #7）。
+
 **Supabase 配線（データ層）実装済み・実 DB 検証待ち**: `src/store/AppDataContext.tsx` をメモリ内モックから **TanStack Query + Supabase CRUD** へ全面差し替え済み（インターフェース不変＝コンポーネント無改修）。`main.tsx` に `QueryClientProvider` を追加（`QueryClientProvider > AuthProvider > AppDataProvider` の順）。`@tanstack/react-query@5` を依存追加。
 
 - 設計の要: ①`addTask`/`addEvent` は `crypto.randomUUID()` で **クライアント採番**し即 id を返す（DB の `default gen_random_uuid()` は使わず明示挿入）＋楽観的更新でドラフトを即パネル表示。②`owner_id` は認証ユーザーから付与（未認証は保存不可）。③表示順は `position` 昇順。`Lane` は配列順をそのまま描画するため、取得時も楽観更新時も `position` で再ソートしキャッシュと DB を一致させる。
 - 並び順キー: `src/lib/order.ts` の `keyBetween`/`keyAfter`/`keyBefore`（字句的中点による fractional index）。挿入・並べ替えで永続化（旧モックの簡易連番を撤去）→ Next Actions #2 を実質前進。
 - 未検証: このリモート環境に Supabase 認証情報が無く、**実 DB に対する CRUD 動作は未確認**。型チェック・ESLint・`npm run build` は通過済み。ローカル（`.env` 設定＋ログイン）での目視チェックが必要。
-- 留意点: ①プレビュー（未ログイン）モードは mock 撤去によりデータ空表示になる（シェルは出る）。②`events.start_at/end_at` は timestamptz。楽観挿入は naive ローカル文字列、再取得後は tz 付き ISO に変わる。カレンダーの TZ 厳密化は #3 と併せて対応。③`src/lib/date.ts` の `APP_TODAY` は固定基準日のまま（実 today 化は #3 で）。
+- 留意点: ①プレビュー（未ログイン）モードは本セッションで mock を復活（上記参照）＝データ入りで全機能を目視可。②`events.start_at/end_at` は timestamptz。楽観挿入は naive ローカル文字列、再取得後は tz 付き ISO に変わる。カレンダーの TZ 厳密化は #3 と併せて対応。③`src/lib/date.ts` の `APP_TODAY` は固定基準日のまま（実 today 化は #3 で）。
 
 **カレンダー週/日グリッド（#3）および Supabase 配線（#1）の Codex Review 指摘（3件）修正完了・実機目視チェック待ち**:
+
 - **P1: timestamptz タイムゾーン正規化 (`AppDataContext.tsx`)**: DB保存前に `.toISOString()` でUTC変換し、読み込み時に `toLocalIso` で naive ローカル ISO に戻すことで、ブラウザとDBのTZ乖離による表示ズレを解消。
 - **P2: 日をまたぐドラッグ中のアンマウント防止 (`TimeGrid.tsx`)**: ドラッグ中要素を元の日のカラムでマウントし続け、ドラッグ先のカラム位置に合わせて `left` 位置を動的に計算することで、アンマウントによる PointerCapture 解除を防ぎ、正常に DnD 移動がコミットできるよう修正。
 - **P2: ヘッダー「予定」追加時の基準日バグ (`Calendar.tsx`)**: 週表示のときも `anchor`（表示中の週の基準日）を基準に予定が作成されるように修正。
@@ -55,14 +64,15 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 
 ## Next Actions
 
-| 優先 | タスク                                                                                                        | 状態 |
-| :--: | ------------------------------------------------------------------------------------------------------------- | :--: |
+| 優先 | タスク                                                                                                                                          | 状態 |
+| :--: | ----------------------------------------------------------------------------------------------------------------------------------------------- | :--: |
 |  1   | Supabase 配線: `AppDataContext` を TanStack Query + Supabase CRUD に差し替え。**コード実装済み・Codex指摘(P1)対応完了・実 DB 目視チェック待ち** |  ◐   |
-|  2   | fractional index による並び順の永続化（カテゴリ・セル内タスク）。`src/lib/order.ts` 実装済み。残: 実 DB での並べ替え検証＋密集時の桁伸長確認         |  ◐   |
-|  3   | Step 11. カレンダー 週/日グリッド＋DnD移動・リサイズ。**実装済み・Codex指摘(P2二件)対応完了・実機目視チェック待ち** |  ◐   |
-|  4   | Step 12-13. Google アカウント連携＋双方向同期（`docs/google-calendar-setup.md`）                              |  ☐   |
+|  2   | fractional index による並び順の永続化（カテゴリ・セル内タスク）。`src/lib/order.ts` 実装済み。残: 実 DB での並べ替え検証＋密集時の桁伸長確認    |  ◐   |
+|  3   | Step 11. カレンダー 週/日グリッド＋DnD移動・リサイズ。**実装済み・Codex指摘(P2二件)対応完了・実機目視チェック待ち**                             |  ◐   |
+|  4   | Step 12-13. Google アカウント連携＋双方向同期（`docs/google-calendar-setup.md`）                                                                |  ☐   |
 |  5   | Step 14. 完了タスクの自動アーカイブ。**実装済み・検証待ち**（自動=完了7日後 sweep／手動=詳細パネル）。残: 実 DB 検証＋アーカイブ一覧 UI（参照） |  ◐   |
-|  6   | Step 16. Cloudflare Pages デプロイ                                                                            |  ☐   |
+|  6   | Step 16. Cloudflare Pages デプロイ                                                                                                              |  ☐   |
+|  7   | 完了プール採用に伴う仕様反映: `task-board-spec-v1.md` §85/§289（3列→2列＋完了ゾーン）更新＋ADR 起票。ユーザーの「これで行く」確定待ち           |  ☐   |
 
 凡例: ☐ 未着手 / ◐ 進行中 / ✅ 完了
 

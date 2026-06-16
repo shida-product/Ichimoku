@@ -9,6 +9,12 @@ export type TaskStatus = "todo" | "doing" | "done";
 
 /** 状態の表示順と日本語ラベル */
 export const STATUS_ORDER: TaskStatus[] = ["todo", "doing", "done"];
+
+/**
+ * ボードのカラムに並べる「作業中」の状態（未着手・対応中）。
+ * `done` は各レーンの列ではなく共有の完了ドロップゾーンへ集約するため除外する。
+ */
+export const WORKING_STATUSES: TaskStatus[] = ["todo", "doing"];
 export const STATUS_LABEL: Record<TaskStatus, string> = {
   todo: "未着手",
   doing: "対応中",

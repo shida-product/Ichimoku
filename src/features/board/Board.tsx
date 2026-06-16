@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -13,10 +13,11 @@ import { Layout, Plus, StickyNote } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
 import type { Category, Task, TaskStatus } from "@/lib/types";
-import { STATUS_LABEL, STATUS_ORDER } from "@/lib/types";
+import { STATUS_LABEL, WORKING_STATUSES } from "@/lib/types";
 import { Lane } from "@/features/board/Lane";
 import { DueChip } from "@/features/board/TaskCard";
 import { parseCellId } from "@/features/board/BoardCell";
+import { CompleteZone, DONE_ZONE_ID } from "@/features/board/CompleteZone";
 import { Button } from "@/components/ui/button";
 
 const UNCAT_KEY = "uncat";
@@ -28,8 +29,8 @@ function catColor(c: Category, index: number): string {
 }
 
 export function Board() {
-  const { categories, tasks, reorderTask, addTask } = useAppData();
-  const { openTaskDraft } = useOverlay();
+  const { categories, tasks, reorderTask, moveTask, addTask } = useAppData();
+  const { openTask, openTaskDraft } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showMemo, setShowMemo] = useState(true);
@@ -65,6 +66,14 @@ export function Board() {
     const overId = String(over.id);
     if (activeId === overId) return;
 
+    // 完了ドロップゾーン: カテゴリは保ったまま完了（status=done）にして消化する
+    if (overId === DONE_ZONE_ID) {
+      const t = tasks.find((x) => x.id === activeId);
+      if (!t || t.status === "done") return;
+      moveTask(activeId, t.categoryId, "done");
+      return;
+    }
+
     let categoryKey: string;
     let status: TaskStatus;
     let beforeId: string | null;
@@ -88,6 +97,7 @@ export function Board() {
   };
 
   const uncategorized = tasks.filter((t) => t.categoryId === null);
+  const doneTasks = tasks.filter((t) => t.status === "done");
   const activeTask: Task | undefined = activeId ? tasks.find((t) => t.id === activeId) : undefined;
 
   return (
@@ -136,22 +146,23 @@ export function Board() {
         </div>
       </div>
 
-      {/* 状態見出し（3 列） */}
-      <div className="grid grid-cols-3 gap-2.5 px-4 pt-3 pb-1 text-[11px] font-medium tracking-[0.05em] text-muted-foreground">
-        {STATUS_ORDER.map((s) => (
-          <span key={s} className={s === "done" ? "text-ink-3" : undefined}>
-            {STATUS_LABEL[s]}
-          </span>
+      {/* 状態見出し（2 列・列間に薄い縦罫線） */}
+      <div className="grid grid-cols-[1fr_10px_1fr] px-4 pt-3 pb-1 text-[11px] font-medium tracking-[0.05em] text-muted-foreground">
+        {WORKING_STATUSES.map((s, i) => (
+          <Fragment key={s}>
+            {i > 0 ? <div className="w-px justify-self-center self-stretch bg-border" /> : null}
+            <span>{STATUS_LABEL[s]}</span>
+          </Fragment>
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto pb-2">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="min-h-0 flex-1 overflow-auto pb-2">
           {/* 未分類レーン（常に先頭・控えめ） */}
           <Lane
             categoryKey={UNCAT_KEY}
@@ -176,17 +187,27 @@ export function Board() {
               showMemo={showMemo}
             />
           ))}
+        </div>
 
-          <DragOverlay>
-            {activeTask ? (
-              <div className="flex w-full cursor-grabbing flex-col gap-1.5 rounded-md border border-input bg-card p-2.5 text-left shadow-lg">
-                <span className="text-[13px] leading-snug">{activeTask.title}</span>
-                {activeTask.dueDate ? <DueChip dueDate={activeTask.dueDate} /> : null}
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </div>
+        {/* 共有の完了ドロップゾーン（ボード下部に固定） */}
+        <CompleteZone
+          doneTasks={doneTasks}
+          onOpen={openTask}
+          onUndo={(id) => {
+            const t = tasks.find((x) => x.id === id);
+            moveTask(id, t?.categoryId ?? null, "todo");
+          }}
+        />
+
+        <DragOverlay>
+          {activeTask ? (
+            <div className="flex w-full cursor-grabbing flex-col gap-1.5 rounded-md border border-input bg-card p-2.5 text-left shadow-lg">
+              <span className="text-[13px] leading-snug">{activeTask.title}</span>
+              {activeTask.dueDate ? <DueChip dueDate={activeTask.dueDate} /> : null}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </section>
   );
 }

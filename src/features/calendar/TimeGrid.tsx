@@ -182,10 +182,7 @@ export function TimeGrid({
 
   const createAt = (day: Date, offsetY: number) => {
     const start = clamp(snap(Math.round(yToMin(offsetY))), 0, TOTAL_MIN - 60);
-    onCreateAt(
-      toLocalIso(dateAtMinutes(day, start)),
-      toLocalIso(dateAtMinutes(day, start + 60))
-    );
+    onCreateAt(toLocalIso(dateAtMinutes(day, start)), toLocalIso(dateAtMinutes(day, start + 60)));
   };
 
   const hourLines = {
@@ -311,7 +308,9 @@ export function TimeGrid({
                       className={cn(
                         "absolute touch-none overflow-hidden rounded-md border px-1.5 py-0.5 text-left",
                         "border-primary/40 bg-primary/15 text-foreground",
-                        isDragging ? "z-20 cursor-grabbing shadow-lg" : "cursor-grab hover:bg-primary/25"
+                        isDragging
+                          ? "z-20 cursor-grabbing shadow-lg"
+                          : "cursor-grab hover:bg-primary/25"
                       )}
                       style={{
                         top,

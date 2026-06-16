@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TimeGrid } from "@/features/calendar/TimeGrid";
+import { WeekAgenda } from "@/features/calendar/WeekAgenda";
 
 type View = "week" | "day";
 
@@ -117,21 +118,38 @@ export function Calendar() {
         </div>
       </div>
 
-      <TimeGrid
-        days={days}
-        events={events}
-        todayYmd={ymd(parseDate(APP_TODAY))}
-        onPickDay={(day) => {
-          setAnchor(startOfDay(day));
-          setView("day");
-        }}
-        onOpenEvent={openEvent}
-        onCreateAt={(startIso, endIso) => {
-          const id = addEvent({ title: "", startAt: startIso, endAt: endIso });
-          openEventDraft(id);
-        }}
-        onCommit={(id, startIso, endIso) => updateEvent(id, { startAt: startIso, endAt: endIso })}
-      />
+      {view === "week" ? (
+        <WeekAgenda
+          days={days}
+          events={events}
+          todayYmd={ymd(parseDate(APP_TODAY))}
+          onPickDay={(day) => {
+            setAnchor(startOfDay(day));
+            setView("day");
+          }}
+          onOpenEvent={openEvent}
+          onCreateAt={(startIso, endIso) => {
+            const id = addEvent({ title: "", startAt: startIso, endAt: endIso });
+            openEventDraft(id);
+          }}
+        />
+      ) : (
+        <TimeGrid
+          days={days}
+          events={events}
+          todayYmd={ymd(parseDate(APP_TODAY))}
+          onPickDay={(day) => {
+            setAnchor(startOfDay(day));
+            setView("day");
+          }}
+          onOpenEvent={openEvent}
+          onCreateAt={(startIso, endIso) => {
+            const id = addEvent({ title: "", startAt: startIso, endAt: endIso });
+            openEventDraft(id);
+          }}
+          onCommit={(id, startIso, endIso) => updateEvent(id, { startAt: startIso, endAt: endIso })}
+        />
+      )}
     </section>
   );
 }
