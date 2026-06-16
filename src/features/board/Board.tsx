@@ -8,16 +8,17 @@ import { Lane } from "@/features/board/Lane";
 import { CATEGORY_PREFIX, useBoardOrder } from "@/features/board/BoardDndProvider";
 import { CompleteZone } from "@/features/board/CompleteZone";
 import { Button } from "@/components/ui/button";
+import { CAT_UNCAT_VAR, paletteVar } from "@/lib/palette";
 
 const UNCAT_KEY = "uncat";
-/** カテゴリ列の最小幅（px）。これを下回らない範囲で最大 3 列まで詰める。 */
+/** カテゴリ列の最小幅（px）。これを下回らない範囲で最大 MAX_COLS 列まで詰める。
+    画面を縮小（ズームアウト）して枠幅が広がると、ボードはこの範囲で列が増えて広がる。 */
 const MIN_COL_WIDTH = 220;
-const MAX_COLS = 3;
-const UNCAT_COLOR = "#9aa29f"; // 未分類レーンのドット色
-const CAT_FALLBACK = ["#6b7c93", "#8a6d3b", "#7a5c8e", "#3f7e72", "#9a6b6b", "#6b8a7a"];
+const MAX_COLS = 4;
+const UNCAT_COLOR = CAT_UNCAT_VAR; // 未分類レーンのドット色（テーマ追従）
 
 function catColor(c: Category, index: number): string {
-  return c.color ?? CAT_FALLBACK[index % CAT_FALLBACK.length];
+  return c.color ?? paletteVar(index);
 }
 
 /**
@@ -65,12 +66,18 @@ export function Board() {
 
   const uncategorized = orderedTasks(UNCAT_KEY);
 
-  // カテゴリを round-robin で colCount 列に振り分ける（列分配マソンリー）。
-  // index i → 列 i % colCount。各列は中身の高さで独立に縦積みされるため、
-  // 4 つ目（index 3・3 列時）は 1 つ目（index 0）の真下に自然に収まる。
-  const columns: { cat: Category; index: number }[][] = Array.from({ length: colCount }, () => []);
+  // 空き列ができて右側が間延びしないよう、列数はカテゴリ数を上限にする。
+  const effectiveCols = Math.max(1, Math.min(colCount, categories.length));
+
+  // カテゴリを round-robin で effectiveCols 列に振り分ける（列分配マソンリー）。
+  // index i → 列 i % effectiveCols。各列は中身の高さで独立に縦積みされるため、
+  // あふれた分は先頭列の真下に自然に潜り込む。
+  const columns: { cat: Category; index: number }[][] = Array.from(
+    { length: effectiveCols },
+    () => []
+  );
   categories.forEach((cat, index) => {
-    columns[index % colCount].push({ cat, index });
+    columns[index % effectiveCols].push({ cat, index });
   });
 
   return (
@@ -87,7 +94,7 @@ export function Board() {
           <input
             value={quick}
             onChange={(e) => setQuick(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submitQuick()}
+            onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && submitQuick()}
             placeholder="タスクをパッと追加（Enter）— 未分類へ"
             className="min-w-0 flex-1 bg-transparent py-1.5 text-[13px] outline-none placeholder:text-ink-3"
           />
@@ -129,7 +136,9 @@ export function Board() {
               strategy={rectSortingStrategy}
             >
               {columns.map((col, ci) => (
-                <div key={ci} className="flex min-w-0 flex-1 flex-col gap-3">
+                // レーンは快適幅で頭打ち（max-w）。横幅が余ってもレーンを伸ばさず
+                // 右側を余白にする＝カテゴリが少なくても間延びしない。
+                <div key={ci} className="flex min-w-0 max-w-[340px] flex-1 flex-col gap-3">
                   {col.map(({ cat, index }) => (
                     <Lane
                       key={cat.id}

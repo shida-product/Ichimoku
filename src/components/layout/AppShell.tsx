@@ -63,7 +63,7 @@ export function AppShell() {
               : null;
 
   return (
-    <div className="mx-auto flex h-screen max-w-[1320px] flex-col overflow-hidden">
+    <div className="mx-auto flex h-screen w-full max-w-[1900px] flex-col overflow-hidden">
       {/* ── トップバー ── */}
       <header className="flex items-center gap-3 px-[22px] pt-[14px] pb-2">
         <h1 className="m-0 font-display text-[22px] font-bold tracking-[0.04em]">Ichimoku</h1>
@@ -89,7 +89,9 @@ export function AppShell() {
         <BoardDndProvider>
           <div className="flex min-h-0 flex-1 flex-col gap-4 px-[22px] pt-2 pb-4">
             <DeadlineRail />
-            <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[1.7fr_1fr]">
+            {/* カレンダー（アジェンダ）は快適幅で上限固定し、余った横幅は全部ボードへ。
+                → 画面を縮小（ズームアウト）して実効幅が広がると、ボードだけが伸びて列が増える。 */}
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[1fr_minmax(340px,460px)]">
               <Board />
               <Calendar />
             </div>
