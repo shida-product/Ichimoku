@@ -43,10 +43,11 @@
 | 7日以内＝橙    | `text-warn`             | `bg-warn-soft` |
 | それ以遠＝中立 | `text-muted-foreground` | `bg-secondary` |
 
-### カテゴリ標準色（スイムレーンの帯・カード左端）
+### カテゴリ色（スイムレーンのドット）
 
-`bg-cat-jimu`(事務) / `bg-cat-keiei`(経営) / `bg-cat-saiyo`(採用) / `bg-cat-mibun`(未分類)。
-※ ユーザー定義カテゴリは将来 `categories.color` を優先。未設定時にこの標準色へフォールバックする。
+カテゴリ色は**テーマトークンではなくデータが正**。各カテゴリの `categories.color`（型 `Category.color`）を使う。
+未設定（null）のときだけ `src/features/board/Board.tsx` の `CAT_FALLBACK` パレットへ index 順でフォールバックする。
+そのため ColorTuner（テーマトークン調整）はカテゴリ色を扱わない。色の変更はカテゴリ管理側の関心事。
 
 ---
 
