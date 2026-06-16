@@ -38,8 +38,7 @@
   const APP_URL = ""; // 例: "https://ichimoku.example.com" / "http://localhost:5173"
 
   const CONFIGURED =
-    !SUPABASE_URL.includes("your-project") &&
-    !SUPABASE_ANON_KEY.includes("your-supabase-anon-key");
+    !SUPABASE_URL.includes("your-project") && !SUPABASE_ANON_KEY.includes("your-supabase-anon-key");
 
   // GM ストレージのキー
   const K_SESSION = "imk_session"; // { access_token, refresh_token, expires_at, user_id, email }
@@ -353,9 +352,7 @@
         '<p class="ttl">本体アプリでログインしてください</p>' +
         '<p class="muted">安全のため、ここではパスワードを入力しません。' +
         "Ichimoku 本体アプリにログイン済みのタブを開くと、自動で連携されます。</p>" +
-        (APP_URL
-          ? '<button class="btn" id="openApp">Ichimoku を開く</button>'
-          : "") +
+        (APP_URL ? '<button class="btn" id="openApp">Ichimoku を開く</button>' : "") +
         '<div class="row"><span class="hint"></span>' +
         '<button class="link" id="recheck">連携を再確認</button></div>';
       if (APP_URL) {
