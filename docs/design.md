@@ -11,7 +11,7 @@
 - **線と余白で区切る／装飾で飾らない**。境界線・影は最小限。グラデーションやネオン的装飾は使わない。
 - **カードUIはインタラクション要素のときだけ**。ただの表示はパネルの余白・区切り線で表現する。
 - **コピーは実用語**。マーケ用語を避け、端的に（例:「タスクをパッと追加」）。
-- **静かな配色**。地はオフホワイト、文字は濃いインク、アクセントは深緑 1 色に集約する。
+- **静かな配色**。地はクリーム、文字は濃い暖色インク、アクセントはテラコッタ 1 色に集約する。
 
 ---
 
@@ -20,18 +20,20 @@
 コンポーネントでは **生の 16 進値を書かない**。必ず下記のユーティリティを使う。
 実体と対応は `src/index.css` の `:root` / `@theme inline`。
 
+> 値は v1.4 正式採用「案1 ウォーム・コントラスト強化」基準。実体は `src/index.css`。
+
 | 用途             | トークン（Tailwind ユーティリティ例）       | 値        |
 | ---------------- | ------------------------------------------- | --------- |
-| アプリ地         | `bg-background`                             | `#eef1f0` |
-| パネル/カード面  | `bg-card`                                   | `#ffffff` |
-| くぼみ面/副次面  | `bg-secondary` / `bg-muted`                 | `#f5f7f6` |
-| 既定文字         | `text-foreground`                           | `#1c2826` |
-| 副文字           | `text-muted-foreground`                     | `#5c6a66` |
-| 最も淡い補助文字 | `text-ink-3`（プレースホルダ・注記）        | `#8c9794` |
-| 標準の線         | `border-border`                             | `#e0e6e3` |
-| 強めの線/入力枠  | `border-input`                              | `#cdd6d2` |
-| アクセント       | `bg-primary` / `text-primary` / `ring-ring` | `#2f6f62` |
-| アクセント淡色   | `bg-accent` / `text-accent-foreground`      | `#e4efeb` |
+| アプリ地         | `bg-background`                             | `#f1e9d7` |
+| パネル/カード面  | `bg-card`                                   | `#fdfaf2` |
+| くぼみ面/副次面  | `bg-secondary` / `bg-muted`                 | `#ece3d0` |
+| 既定文字         | `text-foreground`                           | `#2a2620` |
+| 副文字           | `text-muted-foreground`                     | `#585044` |
+| 最も淡い補助文字 | `text-ink-3`（プレースホルダ・注記）        | `#8a8070` |
+| 標準の線         | `border-border`                             | `#d8cdb6` |
+| 強めの線/入力枠  | `border-input`                              | `#c4b89c` |
+| アクセント       | `bg-primary` / `text-primary` / `ring-ring` | `#a8482a` |
+| アクセント淡色   | `bg-accent` / `text-accent-foreground`      | `#f1ddcd` |
 
 ### 締切の緊急度（近日締切レーン・締切チップ）
 
@@ -50,7 +52,7 @@
 
 ## 3. 角丸・余白・書体
 
-- **角丸**: 基準 `--radius = 0.7rem(≒11px)`。カード=`rounded-lg`、コントロール=`rounded-md`、チップ=`rounded-full`。
+- **角丸**: 基準 `--radius = 0.5rem(8px)`。カード=`rounded-lg`、コントロール=`rounded-md`、チップ=`rounded-full`。
 - **余白**: パネル内 padding は 12〜16px を基準。要素間 gap は 8〜16px。
 - **書体**:
   - 本文・データ・操作系 = `--font-sans`（Noto Sans JP → system フォールバック）。数字の桁揃えが要る箇所（締切日・時刻）は `tabular` クラス。

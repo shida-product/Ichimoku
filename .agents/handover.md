@@ -19,6 +19,8 @@
 
 ## Current Focus
 
+**配色「案1 ウォーム・コントラスト強化」を正式採用（本セッション 2026-06-16）**: 「淡くて見づらい」解消のため、クリーム×テラコッタの個性は維持したまま文字インク・罫線・くぼみ面・面の段差を一段濃く。`src/index.css` のトークン値のみ差し替え（**コンポーネント無改修**）＋ `docs/design.md` のカラー表/角丸/配色記述を実体に同期。主な変更: `--background #f3eee3→#f1e9d7`／`--foreground #33302a→#2a2620`／`--muted-foreground #6f685c→#585044`／`--ink-3 #a39a89→#8a8070`／`--border #e3dccb→#d8cdb6`／`--input #d6cdb8→#c4b89c`／`--primary #b2542f→#a8482a`／`--card→#fdfaf2`／`--secondary→#ece3d0`／crit/warn も同系で深め。検討用に `design-explorations/v1.4-brushup.html`（現状＋3案＋書体比較）と `design-explorations/v1.4-tuner.html`（本番トークンを 1:1 で実機調整＋index.css 出力するポータル）を新設。ESLint 0 error・Prettier 通過。実機目視で最終確認推奨。
+
 **画面構成の見直し（v1.4 / ADR-0001）実装済み・実機目視チェック待ち（本セッション 2026-06-16）**: ユーザーと論点整理のうえ、4点を一括実装。型チェック・ESLint（0 error）・`npm run build`・prettier 通過。プレビュー（未ログイン）で目視可。
 
 - **論点1（案B）ボード1列化**: 状態列（未着手/対応中）を撤去し**カテゴリ単位の単一リスト**に。「対応中」はカード上の**★フラグ**（内部 `status='doing'`）。`Board`/`Lane`/`BoardCell`/`TaskCard` を改修。`position` の基準が（カテゴリ×状態）→（カテゴリ）に変更。`WORKING_STATUSES` 撤去、`isFlagged()` 追加（`types.ts`）。
@@ -85,7 +87,7 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 |  4   | Step 12-13. Google アカウント連携＋双方向同期（`docs/google-calendar-setup.md`）                                                                |  ☐   |
 |  5   | Step 14. 完了タスク。**完了即アーカイブ＋30日物理削除＋完了履歴 UI に刷新済み（v1.4）**・実 DB 検証待ち（旧 7日自動 sweep は撤去）              |  ◐   |
 |  6   | Step 16. Cloudflare Pages デプロイ                                                                                                              |  ☐   |
-|  7   | 画面構成見直しの仕様反映＋ADR 起票（v1.4 / ADR-0001）。**完了**                                                                                |  ✅  |
+|  7   | 画面構成見直しの仕様反映＋ADR 起票（v1.4 / ADR-0001）。**完了**                                                                                 |  ✅  |
 |  8   | シフト（勤務地）新設。マイグレーション・UI 実装済み。残: **実 DB で migration 適用＋ shift_types/shifts の CRUD 検証**                          |  ◐   |
 
 凡例: ☐ 未着手 / ◐ 進行中 / ✅ 完了
