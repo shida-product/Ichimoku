@@ -2,6 +2,27 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-16] 取込みブランチの一本化（PR #2 ＋ #3 を集約）
+
+- **判断背景**:
+  - PR #2（Tampermonkey クイック追加）と PR #3（画面構成見直し v1.4）が別々に開いたままだったため、`claude/v1.4-consolidated` に集約して単一ブランチ化。
+  - 再確認の過程で、旧 main への PR #2 マージが初回コミット（`e48c3f9`）のみを取り込み、**後続のセキュリティ修正 `996f544` を取りこぼしていた**ことが判明（第三者ページ `@match *://*/*` 上にパスワード入力UIを描画＝キー入力・トークン窃取の P1 脆弱性が残存）。集約時に PR #2 の完全版を取り込んで解消。
+- **変更点**:
+  - `claude/v1.4-consolidated` を `origin/main` から作成し、PR #2 完全版（`e48c3f9`＋`996f544`）と PR #3 完全版（`…ee351ed`）を `--no-ff` で統合。
+  - userscript はパスワードUIを廃し、本体アプリのオリジンの Supabase セッション（`localStorage` の `sb-<ref>-auth-token`）を GM ストレージ経由で共有する方式に。
+- **検証状況**: `tsc -b`（0 error）/ `npm run lint`（既存 react-refresh 警告のみ・0 error）/ `npm run build` 成功。`type="password"`/`grant_type=password` の残存 0 件を確認。
+- **残課題**: ローカルでの目視と実 DB 検証（handover Next Actions 参照）。push と PR 化は未実施（ユーザー指示待ち）。
+
+## [2026-06-16] Tampermonkey クイック追加（端タブ式）ユーザースクリプト（PR #2）
+
+- **判断背景**:
+  - どのサイトからでもタスクを素早く投入できる Tampermonkey ユーザースクリプト（端タブ式クイック追加）を追加。
+- **変更点**:
+  - `tampermonkey/ichimoku-quick-add.user.js`（新規）: 画面端の細い帯（クリックで追加パネル、上下ドラッグで位置記憶、左右端に吸着）。
+  - `tampermonkey/README.md`（新規）: インストール手順と Supabase 接続設定 (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) のドキュメント。
+  - セキュリティ修正（`996f544`）: 第三者ページへのパスワードUI描画を廃止し、本体セッション（access/refresh トークン）を共有・自動更新する方式へ。`lessons/security.md` に教訓を追記。
+- **検証状況**: `npm run lint` / `npm run build` 通過。
+
 ## [2026-06-16] 画面構成の見直し（v1.4 / ADR-0001）— ボード単一リスト・完了即アーカイブ・カレンダー無限スクロール・シフト追加
 
 - **判断背景**:
