@@ -4,13 +4,12 @@
 /*
   Ichimoku デザイントークン（単一の正本）
   ------------------------------------------------------------------
-  ・配色は「案1 ウォーム・コントラスト強化（v1.4 正式採用）」。クリーム×テラコッタの
-    個性は維持しつつ、文字インク・罫線・面の段差を一段濃くして可読性を底上げした版。
-    配色の試行は開発用パネル ColorTuner（src/features/devtools/ColorTuner.tsx・DEV のみ）で行う。
+  ・配色は「② Google」を正式採用。ニュートラルな Google 系グレーの地、白い面、
+    Google Blue のアクセントに集約し、視認性と業務画面としての統一感を優先する。
   ・全コンポーネントはここで定義したセマンティックトークンのみを使う。
     生 16 進値をコンポーネントに直書きしない（統一性の担保）。
   ・shadcn/ui のセマンティック名（background/foreground/primary…）に
-    案B の色を割り当て、shadcn 製と自作の双方を一本化する。
+    Google 配色の色を割り当て、shadcn 製と自作の双方を一本化する。
   詳細な使い分けは docs/design.md を参照。
 */
 
@@ -18,58 +17,56 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.5rem; /* 8px。案B のエディトリアルな浅い角丸 */
+  --radius: 0.5rem; /* 8px */
 
-  /* 面（紙の質感：クリーム） */
-  --background: #f1e9d7; /* アプリ地（page） */
-  --foreground: #2a2620; /* 既定の文字（暖色インク・濃いめ） */
-  --card: #fdfaf2; /* パネル/カード面（surface） */
-  --card-foreground: #2a2620;
-  --popover: #fdfaf2;
-  --popover-foreground: #2a2620;
+  /* 面（Google 系ニュートラル） */
+  --background: #f8f9fa; /* アプリ地（page） */
+  --foreground: #202124; /* 既定の文字 */
+  --card: #ffffff; /* パネル/カード面（surface） */
+  --card-foreground: #202124;
+  --popover: #ffffff;
+  --popover-foreground: #202124;
 
-  /* アクセント（テラコッタ） */
-  --primary: #a8482a;
+  /* アクセント（Google Blue） */
+  --primary: #1a73e8;
   --primary-foreground: #ffffff;
-  --accent: #f1ddcd; /* アクセントの淡色（hover 地など） */
-  --accent-foreground: #a8482a;
+  --accent: #e8f0fe; /* アクセントの淡色（hover 地など） */
+  --accent-foreground: #1a73e8;
 
   /* 副次面 */
-  --secondary: #ece3d0; /* くぼみ面（sunk） */
-  --secondary-foreground: #2a2620;
-  --muted: #ece3d0;
-  --muted-foreground: #585044; /* 副文字（ink2・濃いめ） */
+  --secondary: #f1f3f4; /* くぼみ面（sunk） */
+  --secondary-foreground: #202124;
+  --muted: #f1f3f4;
+  --muted-foreground: #5f6368; /* 副文字 */
 
   /* 破壊的/緊急（締切：3日以内） */
-  --destructive: #9e2f1b;
+  --destructive: #d93025;
   --destructive-foreground: #ffffff;
 
   /* 線 */
-  --border: #d8cdb6; /* 標準の線（line） */
-  --input: #c4b89c; /* 入力枠・強めの線（line2） */
-  --ring: #a8482a; /* フォーカスリング */
+  --border: #dadce0; /* 標準の線（line） */
+  --input: #c0c4c9; /* 入力枠・強めの線（line2） */
+  --ring: #1a73e8; /* フォーカスリング */
 
   /* ドメイン拡張トークン */
-  --ink-3: #8a8070; /* 最も淡い補助文字（プレースホルダ等） */
-  --crit: #9e2f1b; /* 締切 3日以内＝赤 */
-  --crit-soft: #f3d6cb;
-  --warn: #8a6516; /* 締切 7日以内＝橙 */
-  --warn-soft: #efe3c6;
+  --ink-3: #80868b; /* 最も淡い補助文字（プレースホルダ等） */
+  --crit: #d93025; /* 締切 3日以内＝赤 */
+  --crit-soft: #fce8e6;
+  --warn: #e37400; /* 締切 7日以内＝橙 */
+  --warn-soft: #fef0c8;
 
-  /* 分類色（カテゴリ・勤務地の「色未設定時」フォールバック）。
-     各カテゴリ/勤務地が自前の color を持てばそれが優先。ここはテーマ既定色＝
-     配色プリセット（ColorTuner）で一括切替する。解決ロジックは src/lib/palette.ts。 */
-  --cat-1: #6b7c93; /* スレートブルー */
-  --cat-2: #8a6d3b; /* オーカー */
-  --cat-3: #7a5c8e; /* モーブ */
-  --cat-4: #3f7e72; /* ティール */
-  --cat-5: #9a6b6b; /* ダスティローズ */
-  --cat-6: #6b8a7a; /* セージ */
-  --cat-uncat: #9aa29f; /* 未分類など中立 */
+  /* 分類色（カテゴリ・勤務地のパレットスロット）。解決ロジックは src/lib/palette.ts。 */
+  --cat-1: #039be5; /* 青 */
+  --cat-2: #0b8043; /* 緑 */
+  --cat-3: #f4511e; /* 橙赤 */
+  --cat-4: #8e24aa; /* 紫 */
+  --cat-5: #f6bf26; /* 黄 */
+  --cat-6: #7986cb; /* インディゴ */
+  --cat-uncat: #616161; /* 未分類など中立 */
 
-  /* カードの影（暖色インク基調。コンポーネントは token 経由で参照） */
-  --shadow-card: 0 1px 2px rgba(42, 38, 32, 0.07);
-  --shadow-card-hover: 0 4px 12px rgba(42, 38, 32, 0.12);
+  /* カードの影（ニュートラルインク基調。コンポーネントは token 経由で参照） */
+  --shadow-card: 0 1px 2px rgba(32, 33, 36, 0.08);
+  --shadow-card-hover: 0 4px 12px rgba(32, 33, 36, 0.14);
 
   /* 書体（外部フォント取得に依存しない堅牢なフォールバック） */
   --font-sans:

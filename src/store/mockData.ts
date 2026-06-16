@@ -16,7 +16,7 @@ const CAT_DEV = "cat-dev";
 const CAT_KEIRI = "cat-keiri";
 
 export const MOCK_CATEGORIES: Category[] = [
-  // 色はテーマパレットのスロット参照（"cat-N"）。プリセット切替で追従する。
+  // 色は Google 採用パレットのスロット参照（"cat-N"）。
   { id: CAT_EIGYO, name: "営業", position: "h", color: "cat-1" },
   { id: CAT_DEV, name: "開発", position: "n", color: "cat-4" },
   { id: CAT_KEIRI, name: "経理", position: "t", color: "cat-2" },

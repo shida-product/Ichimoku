@@ -11,7 +11,7 @@
 - **線と余白で区切る／装飾で飾らない**。境界線・影は最小限。グラデーションやネオン的装飾は使わない。
 - **カードUIはインタラクション要素のときだけ**。ただの表示はパネルの余白・区切り線で表現する。
 - **コピーは実用語**。マーケ用語を避け、端的に（例:「タスクをパッと追加」）。
-- **静かな配色**。地はクリーム、文字は濃い暖色インク、アクセントはテラコッタ 1 色に集約する。
+- **静かな配色**。地は Google 系ニュートラルグレー、面は白、アクセントは Google Blue に集約する。
 
 ---
 
@@ -20,20 +20,20 @@
 コンポーネントでは **生の 16 進値を書かない**。必ず下記のユーティリティを使う。
 実体と対応は `src/index.css` の `:root` / `@theme inline`。
 
-> 値は v1.4 正式採用「案1 ウォーム・コントラスト強化」基準。実体は `src/index.css`。
+> 値は正式採用「② Google」基準。実体は `src/index.css`。
 
 | 用途             | トークン（Tailwind ユーティリティ例）       | 値        |
 | ---------------- | ------------------------------------------- | --------- |
-| アプリ地         | `bg-background`                             | `#f1e9d7` |
-| パネル/カード面  | `bg-card`                                   | `#fdfaf2` |
-| くぼみ面/副次面  | `bg-secondary` / `bg-muted`                 | `#ece3d0` |
-| 既定文字         | `text-foreground`                           | `#2a2620` |
-| 副文字           | `text-muted-foreground`                     | `#585044` |
-| 最も淡い補助文字 | `text-ink-3`（プレースホルダ・注記）        | `#8a8070` |
-| 標準の線         | `border-border`                             | `#d8cdb6` |
-| 強めの線/入力枠  | `border-input`                              | `#c4b89c` |
-| アクセント       | `bg-primary` / `text-primary` / `ring-ring` | `#a8482a` |
-| アクセント淡色   | `bg-accent` / `text-accent-foreground`      | `#f1ddcd` |
+| アプリ地         | `bg-background`                             | `#f8f9fa` |
+| パネル/カード面  | `bg-card`                                   | `#ffffff` |
+| くぼみ面/副次面  | `bg-secondary` / `bg-muted`                 | `#f1f3f4` |
+| 既定文字         | `text-foreground`                           | `#202124` |
+| 副文字           | `text-muted-foreground`                     | `#5f6368` |
+| 最も淡い補助文字 | `text-ink-3`（プレースホルダ・注記）        | `#80868b` |
+| 標準の線         | `border-border`                             | `#dadce0` |
+| 強めの線/入力枠  | `border-input`                              | `#c0c4c9` |
+| アクセント       | `bg-primary` / `text-primary` / `ring-ring` | `#1a73e8` |
+| アクセント淡色   | `bg-accent` / `text-accent-foreground`      | `#e8f0fe` |
 
 ### 締切の緊急度（近日締切レーン・締切チップ）
 
@@ -45,9 +45,9 @@
 
 ### カテゴリ色（スイムレーンのドット）
 
-カテゴリ色は**テーマトークンではなくデータが正**。各カテゴリの `categories.color`（型 `Category.color`）を使う。
-未設定（null）のときだけ `src/features/board/Board.tsx` の `CAT_FALLBACK` パレットへ index 順でフォールバックする。
-そのため ColorTuner（テーマトークン調整）はカテゴリ色を扱わない。色の変更はカテゴリ管理側の関心事。
+カテゴリ/勤務地の色は、データには `"cat-1"`〜`"cat-6"` のスロット参照か `null`（自動）だけを保持する。
+実際の色値は `src/index.css` の `--cat-1`〜`--cat-6` / `--cat-uncat` が正本。
+旧データの自由 hex は `src/lib/palette.ts` が後方互換で表示するが、新規入力では増やさない。
 
 ---
 

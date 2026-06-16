@@ -14,7 +14,6 @@ import { CompletedHistory } from "@/features/tasks/CompletedHistory";
 import { CategoryManager } from "@/features/categories/CategoryManager";
 import { EventDetailPanel } from "@/features/calendar/EventDetailPanel";
 import { ShiftManager } from "@/features/shifts/ShiftManager";
-import { ColorTuner } from "@/features/devtools/ColorTuner";
 
 /**
  * AppShell — 1画面・遷移ゼロのベースレイアウト（仕様 §7 / §3.7）。
@@ -107,9 +106,6 @@ export function AppShell() {
       >
         {peek?.node}
       </SidePeek>
-
-      {/* 開発用の配色調整ポータル（DEV のみ。本番ビルドでは tree-shake される） */}
-      {import.meta.env.DEV && <ColorTuner />}
     </div>
   );
 }
