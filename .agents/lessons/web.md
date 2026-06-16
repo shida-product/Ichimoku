@@ -4,6 +4,29 @@
 
 ---
 
+### 2026-06-16 [dnd-kit][React] ドラッグ可能カード内の操作ボタンは pointerdown を stopPropagation する
+
+- **❌ Anti-pattern:**
+  `useSortable` のドラッグ用 `listeners` を付けたカード内に、別アクションのボタン（例: ★フラグのトグル）を素朴に置く。
+  ① カードが `<button>` だと中に `<button>` をネスト＝不正な HTML、② ボタンクリックが PointerSensor のドラッグ開始やカードの `onClick`（詳細を開く）と競合し、トグルのつもりがドラッグ扱い／詳細が開くなどの誤作動になる。
+
+- **✅ Solution / Rule:**
+  ① ドラッグ対象のカードは `<button>` ではなく `<div role="button" tabIndex={0}>` にし（keydown で Enter/Space をハンドル）、内側に操作ボタンを置ける構造にする。
+  ② 内側ボタンは `onPointerDown={(e) => e.stopPropagation()}`（ドラッグ開始を食い止める）と `onClick={(e) => { e.stopPropagation(); ... }}`（カードの onClick を止める）を**両方**付ける。
+  PointerSensor の `activationConstraint: { distance: 5 }` だけでは、ボタン上のクリックがカード onClick に伝播するのを防げない点に注意。
+
+---
+
+### 2026-06-16 [React Query] 「即アーカイブ＋履歴」は単一クエリ＋メモ派生にすると整合が楽
+
+- **❌ Anti-pattern:**
+  active タスクと archived（完了履歴）タスクを別々の useQuery キャッシュに分けると、完了/取り消しのたびに2キャッシュ間でアイテムを移し替える楽観的更新が必要になり、ロールバック・整合が複雑化する。
+
+- **✅ Solution / Rule:**
+  クエリは**全件を1キャッシュ**で持ち、`useMemo` で `active = filter(archived_at == null)` / `archived = filter(archived_at != null)` を派生する。完了＝`archived_at` をセットするだけで派生リスト間を自然に移動でき、楽観的更新は1キャッシュの単純な map で済む。物理削除で件数が有界（例: 30日）なら全件取得のコストも許容範囲。
+
+---
+
 ### 2026-06-15 [Vite][Windows][Build] Vite のビルド時のサイレントクラッシュ
 
 - **❌ Anti-pattern:**

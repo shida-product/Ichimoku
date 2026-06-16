@@ -19,6 +19,17 @@
 
 ## Current Focus
 
+**画面構成の見直し（v1.4 / ADR-0001）実装済み・実機目視チェック待ち（本セッション 2026-06-16）**: ユーザーと論点整理のうえ、4点を一括実装。型チェック・ESLint（0 error）・`npm run build`・prettier 通過。プレビュー（未ログイン）で目視可。
+
+- **論点1（案B）ボード1列化**: 状態列（未着手/対応中）を撤去し**カテゴリ単位の単一リスト**に。「対応中」はカード上の**★フラグ**（内部 `status='doing'`）。`Board`/`Lane`/`BoardCell`/`TaskCard` を改修。`position` の基準が（カテゴリ×状態）→（カテゴリ）に変更。`WORKING_STATUSES` 撤去、`isFlagged()` 追加（`types.ts`）。
+- **論点2 完了即アーカイブ＋30日物理削除**: 完了ゾーンへのドロップで `completed_at`・`archived_at` を即記録（`completeTask`）。`fetchTasks` はアーカイブ込み全件取得に変更し、`tasks`(active)/`archivedTasks` をメモ派生。**完了履歴 side-peek**（`CompletedHistory.tsx`）で新しい順表示＋未着手へ戻す（`uncompleteTask`）。**undo トースト**（`UndoToast.tsx`・5秒）。30日経過は起動時 sweep で `deleteTask`（物理削除）。旧 `archiveTask`/`moveTask`/7日自動アーカイブは撤去。
+- **論点3 カレンダー無限スクロール**: 週/日トグル・`TimeGrid`・`WeekAgenda` を削除し、今日起点の**無限スクロール アジェンダ**（`Agenda.tsx`）に一本化。未来=IntersectionObserver で自動継ぎ足し、過去=「前を表示」＋スクロール補正。時間変更は予定詳細パネルへ。
+- **シフト（勤務地）新設**: `shift_types`（マスタ）＋`shifts`（1日1件 `unique(owner_id,date)`）。マイグレーション `supabase/migrations/20260616000000_shifts.sql`（RLS 込み）。アジェンダ各日に色付き**シフトチップ**（`ShiftChip.tsx`）＋**勤務地管理 side-peek**（`ShiftManager.tsx`）。`AppDataContext` に shift CRUD・`setShift` 追加。`OverlayContext` に `history`/`shiftTypes` kind 追加、`AppShell` で出し分け。
+- **未検証**: 新テーブル（shift_types/shifts）と完了即アーカイブ/30日削除の**実 DB 動作は未確認**（このリモート環境に Supabase 認証情報なし）。要ローカル目視＋migration 適用。`mockData.ts` に archived タスク2件・シフト6件・勤務地4種を追加済みでプレビュー確認可。
+- **仕様反映済み**: `task-board-spec-v1.md` を v1.4 へ更新（§3.3/§3.5/§3.8/§5.2/§5.3/§7/§10）＋ `docs/adr/0001-board-and-calendar-layout-rework.md` 起票（Next Actions #7 をクローズ）。
+
+---
+
 Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm run dev` だけで全機能を目視チェックできる状態。
 
 - データ層: `src/store/AppDataContext.tsx`（モック・DB と同じフィールド名）／オーバーレイ一元管理 `src/store/OverlayContext.tsx`（§3.7「常に1枚」）。
@@ -68,11 +79,12 @@ Step 5〜10 を**メモリ内モックストア**で一気に実装し、`npm ru
 | :--: | ----------------------------------------------------------------------------------------------------------------------------------------------- | :--: |
 |  1   | Supabase 配線: `AppDataContext` を TanStack Query + Supabase CRUD に差し替え。**コード実装済み・Codex指摘(P1)対応完了・実 DB 目視チェック待ち** |  ◐   |
 |  2   | fractional index による並び順の永続化（カテゴリ・セル内タスク）。`src/lib/order.ts` 実装済み。残: 実 DB での並べ替え検証＋密集時の桁伸長確認    |  ◐   |
-|  3   | Step 11. カレンダー 週/日グリッド＋DnD移動・リサイズ。**実装済み・Codex指摘(P2二件)対応完了・実機目視チェック待ち**                             |  ◐   |
+|  3   | Step 11. カレンダー。**無限スクロール アジェンダに刷新済み（v1.4）**・実機目視待ち。週/日グリッド・TimeGrid は撤去                              |  ◐   |
 |  4   | Step 12-13. Google アカウント連携＋双方向同期（`docs/google-calendar-setup.md`）                                                                |  ☐   |
-|  5   | Step 14. 完了タスクの自動アーカイブ。**実装済み・検証待ち**（自動=完了7日後 sweep／手動=詳細パネル）。残: 実 DB 検証＋アーカイブ一覧 UI（参照） |  ◐   |
+|  5   | Step 14. 完了タスク。**完了即アーカイブ＋30日物理削除＋完了履歴 UI に刷新済み（v1.4）**・実 DB 検証待ち（旧 7日自動 sweep は撤去）              |  ◐   |
 |  6   | Step 16. Cloudflare Pages デプロイ                                                                                                              |  ☐   |
-|  7   | 完了プール採用に伴う仕様反映: `task-board-spec-v1.md` §85/§289（3列→2列＋完了ゾーン）更新＋ADR 起票。ユーザーの「これで行く」確定待ち           |  ☐   |
+|  7   | 画面構成見直しの仕様反映＋ADR 起票（v1.4 / ADR-0001）。**完了**                                                                                |  ✅  |
+|  8   | シフト（勤務地）新設。マイグレーション・UI 実装済み。残: **実 DB で migration 適用＋ shift_types/shifts の CRUD 検証**                          |  ◐   |
 
 凡例: ☐ 未着手 / ◐ 進行中 / ✅ 完了
 
