@@ -285,9 +285,13 @@ function buildOptimistic<T, V>(
 ) {
   return {
     onMutate: async (vars: V) => {
-      await qc.cancelQueries({ queryKey: key });
+      // 楽観更新は同期で先に書く（cancelQueries の await より前）。
+      // await を先に置くとキャッシュ反映が 1 マイクロタスク遅れ、イベントハンドラが
+      // 古いデータで 1 フレーム描画する＝完了ドロップやカテゴリ D&D で「一瞬戻る」原因になる。
       const prev = qc.getQueryData<T[]>(key) ?? [];
       qc.setQueryData<T[]>(key, updater(prev, vars));
+      // 反映後に in-flight の再取得を止めて楽観値の上書きを防ぐ（onSettled で最終整合）。
+      await qc.cancelQueries({ queryKey: key });
       return { prev };
     },
     onError: (_err: unknown, _vars: V, ctx: { prev: T[] } | undefined) => {

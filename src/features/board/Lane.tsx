@@ -1,5 +1,4 @@
 import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, GripVertical } from "lucide-react";
 import type { Task } from "@/lib/types";
 import { BoardCell, cellId } from "@/features/board/BoardCell";
@@ -36,7 +35,10 @@ export function Lane({
 }) {
   const isColumn = variant === "column";
   // 列モードのみ並べ替え対象（未分類の行は disabled）。
-  const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({
+  // 並べ替え中の transform は適用しない：列分配マソンリー（別 div へ分散）と
+  // dnd-kit のシフト計算が噛み合わず、特に折りたたみ時にレイアウトが崩れるため。
+  // ドラッグ中は DragOverlay を表示し、ドロップ時にデータ駆動で順序を確定する。
+  const { setNodeRef, attributes, listeners, isDragging } = useSortable({
     id: CATEGORY_PREFIX + categoryKey,
     disabled: !isColumn,
   });
@@ -77,7 +79,6 @@ export function Lane({
     return (
       <div
         ref={setNodeRef}
-        style={{ transform: CSS.Transform.toString(transform), transition }}
         className={cn(
           "flex w-full flex-col self-start overflow-hidden rounded-lg border border-border bg-card",
           isDragging && "opacity-40"

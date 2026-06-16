@@ -65,6 +65,10 @@ type Containers = Record<string, string[]>;
 const cloneContainers = (c: Containers): Containers =>
   Object.fromEntries(Object.entries(c).map(([k, v]) => [k, [...v]]));
 
+/** 全コンテナから指定 id を除いた新コンテナを返す（完了カードの即時除去用）。 */
+const removeFromContainers = (c: Containers, id: string): Containers =>
+  Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v.filter((x) => x !== id)]));
+
 // ── ボードの並び順を配るコンテキスト ──────────────────────────────
 // ドラッグ中は override（ライブの並び）を、非ドラッグ時は tasks 由来の base を返す。
 type BoardOrderCtx = { orderedTasks: (containerKey: string) => Task[] };
@@ -232,16 +236,19 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
 
     // 近日締切レーン由来: 完了ゾーンへのドロップのみ消化（並べ替えはしない）。
     if (activeKey.startsWith(DEADLINE_PREFIX)) {
+      const taskId = activeKey.slice(DEADLINE_PREFIX.length);
       if (overKey === DONE_ZONE_ID) {
-        const taskId = activeKey.slice(DEADLINE_PREFIX.length);
         const t = byId.get(taskId);
         if (t) {
           completeTask(taskId);
           flashToast(t);
         }
+        // ボード上の同タスクカードを即座に消して固定（tasks 反映までの戻りフレーム防止）。
+        setOverride(removeFromContainers(base, taskId));
+      } else {
+        setOverride(null);
       }
       endDrag();
-      setOverride(null);
       return;
     }
 
@@ -252,8 +259,10 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
         completeTask(activeKey);
         flashToast(t);
       }
+      // null で base に戻すと tasks 反映まで元位置に一瞬戻るため、override から
+      // 当該カードを除いて固定する（並べ替えパスと同じ「チラつき防止」方針）。
+      setOverride((prev) => removeFromContainers(prev ?? base, activeKey));
       endDrag();
-      setOverride(null);
       return;
     }
 
@@ -321,7 +330,10 @@ export function BoardDndProvider({ children }: { children: React.ReactNode }) {
       >
         {children}
 
-        <DragOverlay>
+        {/* dropAnimation=null: ドロップ時にオーバーレイを元位置へ戻す既定アニメを無効化。
+            完了ゾーンへのドロップで「一度元の位置へ戻ってから消える」挙動を防ぎ、
+            並べ替え・移動・完了のすべてで即確定（スナップ）に挙動を揃える。 */}
+        <DragOverlay dropAnimation={null}>
           {activeCategory ? (
             <div className="w-64 cursor-grabbing rounded-lg border border-input bg-card px-3 py-2 shadow-lg">
               <span className="text-[13px] font-semibold">{activeCategory.name}</span>
