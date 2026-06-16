@@ -2,6 +2,21 @@
 
 主要な変更の判断背景を記録します。詳細な差分は Git commit を追ってください。
 
+## [2026-06-16] ボード/カレンダー UI 反復（DnD 挙動統一・レスポンシブ列分配マソンリー・IME セーフ入力）
+
+- **判断背景**:
+  - カテゴリが増えると横スクロールで見切れる問題。状態フローではなく単なる分類のため、横スクロールではなく**画面幅に応じた列折り返し**が適切。flex-wrap だと「行＝最も高い列」で隙間が出るため、**列分配マソンリー**（index%列数で各列へ振り分け・各列独立に縦積み）にし、4 つ目以降が 1 つ目の真下へ自然に潜るようにした。
+  - DnD の挙動不整合（①折りたたみ時のカテゴリ並べ替えでレイアウト崩れ／②完了ドロップで一度元位置へ戻る）。
+  - 自動保存が IME 変換中に割り込み、変換途中で確定・Enter で誤送信される入力バグ。
+- **変更点**:
+  - `Board.tsx`: ResizeObserver で枠幅から列数（1〜MAX_COLS）を算出し列分配マソンリー描画。カテゴリ列は `w-full`（`Lane.tsx`）。クイック追加の Enter に IME 確定ガード。
+  - `BoardDndProvider.tsx`: 衝突判定を `pointerWithin →rectIntersection →closestCorners` に（カーソル位置優先＝空の未分類など薄い的にも確実に落ちる）。`DragOverlay` の `dropAnimation=null` で「元位置へ戻る」アニメ無効化＝並べ替え・移動・完了をスナップ確定に統一。`Lane.tsx` のカテゴリ列はマソンリーと噛み合わない sortable transform を撤去。
+  - `AppDataContext.tsx`: 楽観更新をハンドラ同期で先に書き、`cancelQueries` の await を後段へ。1 フレームの「一瞬戻る」描画を解消。
+  - IME セーフ入力（`_shared/panel.tsx` に `useAutoField`/`AutoInput`/`AutoTextarea`）: 表示値をローカル state で保持し composition 中はストアへ伝播しない・入力中は外部値で上書きしない。タスク（タイトル/メモ/リンク）・カテゴリ名・シフト名へ適用。各追加 Enter に `isComposing` ガード。
+  - `AppShell.tsx`: カレンダー幅を上限固定（`minmax(340px,460px)`）し余白はボードへ。最大幅 1900px。
+- **検証状況**: `tsc --noEmit` / `npm run lint`（0 error・既存 react-refresh 警告のみ）/ Prettier 通過。実機目視は未実施（推奨）。
+- **残課題**: 実機での DnD/IME 目視。並行作業（ColorTuner・配色仕様 docs）は本コミットに含めず別途。
+
 ## [2026-06-16] 配色調整ポータルを開発環境（DEV）に内蔵 ＋ 検討用モックを削除
 
 - **判断背景**:
