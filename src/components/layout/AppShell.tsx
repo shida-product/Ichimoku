@@ -14,13 +14,12 @@ import { CompletedHistory } from "@/features/tasks/CompletedHistory";
 import { CategoryManager } from "@/features/categories/CategoryManager";
 import { EventDetailPanel } from "@/features/calendar/EventDetailPanel";
 import { ShiftManager } from "@/features/shifts/ShiftManager";
-import { ThemeSwitcher } from "@/features/_shared/ThemeSwitcher";
 
 /**
  * AppShell — 1画面・遷移ゼロのベースレイアウト（仕様 §7 / §3.7）。
- * トップバー／近日締切レーン／ワークスペース（ボード｜カレンダー）を固定配置し、
- * 編集・追加はオーバーレイ（side-peek）で重ねる。
- * タスク追加・予定追加の入口は各ブロック（ボード／カレンダー）のヘッダに配置し、
+ * トップバー＋3カラム（近日締切｜タスクボード｜カレンダー）を固定配置し、
+ * 編集・追加はオーバーレイ（side-peek）で重ねる。近日締切を左カラムに常時縦並びで置くことで
+ * 見落としを防ぐ。タスク追加・予定追加の入口は各ブロックのヘッダに配置し、
  * 追加と編集は同一の詳細パネルに一本化している。
  */
 export function AppShell() {
@@ -83,18 +82,17 @@ export function AppShell() {
         </div>
       </header>
 
-      {/* ── 本体 ── 近日締切とボードを同一 DnD 文脈に置き、締切カードを完了ゾーンへドロップ可能に。
-          HighlightProvider で締切カード ⇄ ボードのホバー連動（該当タスク強調）を共有する。 */}
+      {/* ── 本体（3カラム: 近日締切｜タスクボード｜カレンダー）──
+          近日締切とボードを同一 DnD 文脈に置き、締切カードを完了ゾーンへドロップ可能に。
+          HighlightProvider で締切カード ⇄ ボードのホバー連動（該当タスク強調）を共有する。
+          各カラムは grid 子要素として縦に伸びて高さが揃う。lg 未満では縦積みにフォールバック。
+          カレンダーは快適幅で上限固定し、余った横幅はボードへ（列が増える）。 */}
       <HighlightProvider>
         <BoardDndProvider>
-          <div className="flex min-h-0 flex-1 flex-col gap-4 px-[22px] pt-2 pb-4">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 px-[22px] pt-2 pb-4 lg:grid-cols-[minmax(220px,260px)_1fr_minmax(340px,460px)]">
             <DeadlineRail />
-            {/* カレンダー（アジェンダ）は快適幅で上限固定し、余った横幅は全部ボードへ。
-                → 画面を縮小（ズームアウト）して実効幅が広がると、ボードだけが伸びて列が増える。 */}
-            <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[1fr_minmax(340px,460px)]">
-              <Board />
-              <Calendar />
-            </div>
+            <Board />
+            <Calendar />
           </div>
         </BoardDndProvider>
       </HighlightProvider>
@@ -107,9 +105,6 @@ export function AppShell() {
       >
         {peek?.node}
       </SidePeek>
-
-      {/* デザイン改修の比較用テーマ切替（DEV のみ・本番では描画しない） */}
-      {import.meta.env.DEV ? <ThemeSwitcher /> : null}
     </div>
   );
 }

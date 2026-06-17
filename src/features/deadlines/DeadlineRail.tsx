@@ -36,7 +36,7 @@ function DeadlineCard({ task }: { task: Task }) {
       onPointerEnter={enter}
       onPointerLeave={leave}
       className={cn(
-        "w-[180px] shrink-0 cursor-pointer touch-none rounded-md border border-border bg-secondary px-3 py-2 text-left transition-colors hover:border-input",
+        "w-full cursor-pointer touch-none rounded-md border border-border bg-secondary px-3 py-2 text-left transition-colors hover:border-input",
         isDragging && "opacity-40"
       )}
     >
@@ -52,7 +52,8 @@ function DeadlineCard({ task }: { task: Task }) {
 }
 
 /**
- * 近日締切レーン（§3.4）。締切のある未完了タスクを締切順に常時表示。
+ * 近日締切カラム（§3.4）。締切のある未完了タスクを締切順に縦並びで常時表示。
+ * 3カラムレイアウト（締切｜ボード｜カレンダー）の左カラムとして、常時一覧でき見落としを防ぐ。
  * 緊急度はラベル文字色で表現し、クリックで詳細／完了ゾーンへドラッグで消化できる。
  */
 export function DeadlineRail() {
@@ -63,21 +64,17 @@ export function DeadlineRail() {
     .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1));
 
   return (
-    <section className="rounded-lg border border-border bg-card px-3.5 py-3">
-      <div className="mb-2 flex items-center gap-2.5">
+    <section className="flex min-h-0 flex-col rounded-lg border border-border bg-card">
+      <div className="flex items-center gap-2.5 border-b border-border px-3.5 py-3">
         <Clock className="size-3.5 text-muted-foreground" />
         <span className="text-xs font-medium tracking-[0.04em] text-muted-foreground">
           近日締切
         </span>
-        <span className="text-[11px] text-ink-3">
-          締切順・常に表示・クリックで詳細／完了ゾーンへドラッグ
-        </span>
       </div>
-
       {items.length === 0 ? (
-        <p className="px-1 py-1 text-xs text-ink-3">締切のあるタスクはまだありません</p>
+        <p className="px-3.5 py-3 text-xs text-ink-3">締切のあるタスクはまだありません</p>
       ) : (
-        <div className="flex gap-2.5 overflow-x-auto pb-1">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
           {items.map((t) => (
             <DeadlineCard key={t.id} task={t} />
           ))}
