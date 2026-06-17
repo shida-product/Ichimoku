@@ -14,6 +14,7 @@ import { CompletedHistory } from "@/features/tasks/CompletedHistory";
 import { CategoryManager } from "@/features/categories/CategoryManager";
 import { EventDetailPanel } from "@/features/calendar/EventDetailPanel";
 import { ShiftManager } from "@/features/shifts/ShiftManager";
+import { ThemeSwitcher } from "@/features/_shared/ThemeSwitcher";
 
 /**
  * AppShell — 1画面・遷移ゼロのベースレイアウト（仕様 §7 / §3.7）。
@@ -106,6 +107,9 @@ export function AppShell() {
       >
         {peek?.node}
       </SidePeek>
+
+      {/* デザイン改修の比較用テーマ切替（DEV のみ・本番では描画しない） */}
+      {import.meta.env.DEV ? <ThemeSwitcher /> : null}
     </div>
   );
 }
