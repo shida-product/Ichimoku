@@ -12,27 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { MiniRangeCalendar, type DateRange } from "@/features/calendar/MiniRangeCalendar";
 import { parseIso, ymd } from "@/lib/calendar";
 import { APP_TODAY } from "@/lib/date";
+import { STEP_MIN, TIME_OPTIONS, hhmmToMin, minToHHMM } from "@/lib/time";
 import { Button } from "@/components/ui/button";
-
-/** 時間ドロップダウンの刻み（分） */
-const STEP_MIN = 15;
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-function minToHHMM(m: number): string {
-  return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
-}
-function hhmmToMin(s: string): number {
-  const [h, m] = s.split(":").map(Number);
-  return h * 60 + m;
-}
-
-/** 0:00〜23:45 を STEP_MIN 刻みで（value=HH:mm, label=H:mm） */
-const TIME_OPTIONS: { value: string; label: string }[] = [];
-for (let m = 0; m < 24 * 60; m += STEP_MIN) {
-  TIME_OPTIONS.push({ value: minToHHMM(m), label: `${Math.floor(m / 60)}:${pad2(m % 60)}` });
-}
 
 /**
  * 予定の新規登録 / 編集（side-peek・保存ボタン式 = option B）。

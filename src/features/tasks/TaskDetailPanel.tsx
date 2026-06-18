@@ -2,6 +2,7 @@ import { ExternalLink, Plus, Star, Trash2, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppData } from "@/store/AppDataContext";
 import { isFlagged, type TaskLink } from "@/lib/types";
+import { TIME_OPTIONS } from "@/lib/time";
 import {
   AutoInput,
   AutoTextarea,
@@ -206,14 +207,20 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
               onChange={(e) => patch({ dueDate: e.target.value || null })}
               className={`${fieldClass} flex-1`}
             />
-            <input
-              type="time"
+            <select
               value={task.dueTime ?? ""}
               onChange={(e) => patch({ dueTime: e.target.value || null })}
-              aria-label="締切時刻（任意）"
+              aria-label="締切時刻（任意・15分刻み）"
               title="締切時刻（任意）"
               className={`${fieldClass} w-28`}
-            />
+            >
+              <option value="">時刻なし</option>
+              {TIME_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </div>
         )}
       </div>
