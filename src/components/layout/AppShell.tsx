@@ -1,4 +1,4 @@
-import { LogOut, Settings } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
@@ -25,7 +25,7 @@ import { ShiftManager } from "@/features/shifts/ShiftManager";
 export function AppShell() {
   const { user, signOut } = useAuth();
   const { tasks, deleteTask } = useAppData();
-  const { active, openCategory, close } = useOverlay();
+  const { active, close } = useOverlay();
 
   // 閉じる際、空のまま終えた下書きタスク（追加直後で未入力）は破棄する。
   // 予定は保存ボタン式（option B）で保存時のみ作成するため、破棄処理は不要。
@@ -68,10 +68,6 @@ export function AppShell() {
         <h1 className="m-0 font-display text-[22px] font-bold tracking-[0.04em]">Ichimoku</h1>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={openCategory}>
-            <Settings />
-            カテゴリ
-          </Button>
           <span className="hidden rounded-full border border-border bg-secondary px-3 py-1.5 text-xs text-muted-foreground md:inline">
             {user?.email ?? "プレビュー（モックデータ）"}
           </span>

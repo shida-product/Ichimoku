@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { Layout, Plus } from "lucide-react";
+import { Layout, Plus, Settings } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
 import type { Category } from "@/lib/types";
@@ -28,7 +28,7 @@ function catColor(c: Category, index: number): string {
 export function Board() {
   const { categories, addTask } = useAppData();
   const { orderedTasks, orderedCategories } = useBoardOrder();
-  const { openTaskDraft, openHistory } = useOverlay();
+  const { openTaskDraft, openHistory, openCategory } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [quick, setQuick] = useState("");
 
@@ -115,6 +115,16 @@ export function Board() {
         >
           <Plus />
           タスク
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          onClick={openCategory}
+          title="カテゴリを管理"
+        >
+          <Settings />
+          カテゴリ
         </Button>
       </div>
 

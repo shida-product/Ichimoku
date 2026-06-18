@@ -161,8 +161,8 @@ export function Agenda({
                   dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"
                 )}
               >
-                {/* 日付列 */}
-                <div className="flex w-11 shrink-0 flex-col items-center gap-0.5 pt-0.5 select-none">
+                {/* 日付列（曜日・日付・勤務地チップを縦に並べる＝勤務地は日付の真下） */}
+                <div className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 pt-0.5 select-none">
                   <span className={cn("text-[11px]", isToday ? "text-primary" : "text-ink-3")}>
                     {weekdayLabel(day)}
                   </span>
@@ -174,18 +174,20 @@ export function Agenda({
                   >
                     {day.getDate()}
                   </span>
-                </div>
-
-                {/* 内容（シフト＋予定） */}
-                <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
-                  {/* シフト＋予定追加 */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full min-w-0 justify-center">
                     <ShiftChip
                       shiftTypes={shiftTypes}
                       currentId={shiftByDate(dy)}
                       onSelect={(id) => onSetShift(dy, id)}
                       onManage={onManageShifts}
                     />
+                  </div>
+                </div>
+
+                {/* 内容（予定） */}
+                <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
+                  {/* 予定追加 */}
+                  <div className="flex items-center">
                     <button
                       type="button"
                       onClick={() => onCreateOn(dy)}

@@ -35,23 +35,19 @@ export function ShiftChip({
     <button
       type="button"
       title="勤務地を変更"
-      className="inline-flex max-w-[7.5rem] cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+      className="inline-flex max-w-full min-w-0 cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
       style={{
         borderColor: tint(resolveColor(current.color, currentIdx), 40),
         backgroundColor: tint(resolveColor(current.color, currentIdx), 12),
       }}
     >
-      <span
-        className="size-2 shrink-0 rounded-full"
-        style={{ backgroundColor: resolveColor(current.color, currentIdx) }}
-      />
-      <span className="truncate">{current.name}</span>
+      <span className="min-w-0 truncate">{current.name}</span>
     </button>
   ) : (
     <button
       type="button"
       title="勤務地を設定"
-      className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] text-ink-3 transition-colors hover:border-input hover:text-muted-foreground"
+      className="inline-flex max-w-full cursor-pointer items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] text-ink-3 transition-colors hover:border-input hover:text-muted-foreground"
     >
       <Plus className="size-3" />
       勤務地
