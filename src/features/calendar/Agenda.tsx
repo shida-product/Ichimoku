@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronUp, Plus } from "lucide-react";
+import { ChevronUp, Clock, Flag, Plus } from "lucide-react";
 import type { EventItem, Shift, ShiftType, Task } from "@/lib/types";
 import { addDays, formatTime, parseIso, weekdayLabel, ymd } from "@/lib/calendar";
 import { dueUrgency, parseDate, urgencyClasses } from "@/lib/date";
@@ -209,8 +209,8 @@ export function Agenda({
                           onClick={() => onOpenEvent(e.id)}
                           className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
                         >
-                          <span className="mt-px w-1 shrink-0 self-stretch rounded-full bg-muted-foreground/40" />
-                          <span className="w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
+                          <Clock className="mt-0.5 size-3 shrink-0 text-muted-foreground/70" />
+                          <span className="w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
                             終日
                           </span>
                           <span className="min-w-0 flex-1 truncate pt-px text-[13px] font-medium">
@@ -225,8 +225,8 @@ export function Agenda({
                           onClick={() => onOpenEvent(e.id)}
                           className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
                         >
-                          <span className="mt-px w-1 shrink-0 self-stretch rounded-full bg-primary/50" />
-                          <span className="w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
+                          <Clock className="mt-0.5 size-3 shrink-0 text-primary/70" />
+                          <span className="w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
                             {timedLabel(e, dy)}
                           </span>
                           <span className="min-w-0 flex-1">
@@ -241,7 +241,8 @@ export function Agenda({
                           </span>
                         </button>
                       ))}
-                      {/* 締切タスク（緊急度で色分け・クリックでタスク詳細） */}
+                      {/* 締切タスク: 予定（平たい行）と区別するため、緊急度色の淡い塗りカード＋旗アイコン。
+                          「自分が消化するもの」を一目で見分けられるようにする（色は種別から自動）。 */}
                       {dueTasks.map((t) => {
                         const uc = urgencyClasses(dueUrgency(dy, todayYmd));
                         return (
@@ -257,21 +258,26 @@ export function Agenda({
                               setHighlightId(null);
                               setHighlightDate(null);
                             }}
-                            className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
+                            className={cn(
+                              "flex items-start gap-2 rounded-md border px-2 py-1.5 text-left transition-[filter]",
+                              uc.bg,
+                              uc.border,
+                              "hover:brightness-[0.97]"
+                            )}
                           >
-                            <span
-                              className={cn("mt-px w-1 shrink-0 self-stretch rounded-full", uc.bg)}
-                            />
-                            <span
-                              className={cn(
-                                "w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap tabular",
-                                uc.text
-                              )}
-                            >
-                              締切
-                            </span>
-                            <span className="min-w-0 flex-1 truncate pt-px text-[13px] font-medium">
-                              {t.title || "（無題）"}
+                            <Flag className={cn("mt-0.5 size-3 shrink-0", uc.text)} />
+                            <span className="min-w-0 flex-1">
+                              <span
+                                className={cn(
+                                  "block text-[11px] font-medium whitespace-nowrap tabular",
+                                  uc.text
+                                )}
+                              >
+                                締切{t.dueTime ? ` ${t.dueTime}` : ""}
+                              </span>
+                              <span className="mt-0.5 block truncate text-[13px] font-medium">
+                                {t.title || "（無題）"}
+                              </span>
                             </span>
                           </button>
                         );
