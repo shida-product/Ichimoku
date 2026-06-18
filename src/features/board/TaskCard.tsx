@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Flag, Star } from "lucide-react";
-import type { Task, TaskPriority } from "@/lib/types";
+import { Star } from "lucide-react";
+import type { Task } from "@/lib/types";
 import { isFlagged } from "@/lib/types";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
@@ -22,28 +22,6 @@ export function DueChip({ dueDate, dueTime }: { dueDate: string; dueTime?: strin
       )}
     >
       締切 <span className="tabular">{formatDue(dueDate, dueTime ?? null)}</span>
-    </span>
-  );
-}
-
-/**
- * 優先度の印（カード用）。既定（normal）は何も出さず、高/低のみ控えめに示す。
- * 高＝crit 系で目立たせ、低＝ミュート。色は締切緊急度（warn/crit）と衝突しないよう
- * アイコン＋小さなラベルで区別する。
- */
-export function PriorityMark({ priority }: { priority: TaskPriority }) {
-  if (priority === "normal") return null;
-  const high = priority === "high";
-  return (
-    <span
-      className={cn(
-        "inline-flex w-fit shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-        high ? "bg-crit-soft text-crit" : "bg-secondary text-ink-3"
-      )}
-      title={`優先度: ${high ? "高" : "低"}`}
-    >
-      <Flag className={cn("size-2.5", high && "fill-current")} />
-      {high ? "高" : "低"}
     </span>
   );
 }
@@ -125,12 +103,7 @@ export function TaskCard({ task }: { task: Task }) {
           {memo}
         </p>
       ) : null}
-      {task.priority !== "normal" || task.dueDate ? (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <PriorityMark priority={task.priority} />
-          {task.dueDate ? <DueChip dueDate={task.dueDate} dueTime={task.dueTime} /> : null}
-        </div>
-      ) : null}
+      {task.dueDate ? <DueChip dueDate={task.dueDate} dueTime={task.dueTime} /> : null}
     </div>
   );
 }

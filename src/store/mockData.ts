@@ -31,7 +31,6 @@ export const MOCK_TASKS: Task[] = [
     description: "前年度実績ベースで再見積もり。値引き条件は要相談。",
     links: [{ title: "見積テンプレ", url: "https://example.com/quote" }],
     status: "todo",
-    priority: "high",
     position: "h",
     dueDate: "2026-06-16",
     dueTime: "17:00",
@@ -47,7 +46,6 @@ export const MOCK_TASKS: Task[] = [
     description: "",
     links: [],
     status: "doing",
-    priority: "normal",
     position: "n",
     dueDate: "2026-06-20",
     dueTime: null,
@@ -67,7 +65,6 @@ export const MOCK_TASKS: Task[] = [
       { title: "再現動画", url: "https://example.com/repro" },
     ],
     status: "todo",
-    priority: "high",
     position: "h",
     dueDate: "2026-06-17",
     dueTime: null,
@@ -83,7 +80,6 @@ export const MOCK_TASKS: Task[] = [
     description: "",
     links: [],
     status: "doing",
-    priority: "normal",
     position: "n",
     dueDate: null,
     dueTime: null,
@@ -99,7 +95,6 @@ export const MOCK_TASKS: Task[] = [
     description: "",
     links: [],
     status: "done",
-    priority: "normal",
     position: "h",
     dueDate: null,
     dueTime: null,
@@ -117,7 +112,6 @@ export const MOCK_TASKS: Task[] = [
     description: "期限超過。至急対応。",
     links: [],
     status: "todo",
-    priority: "high",
     position: "h",
     dueDate: "2026-06-10",
     dueTime: "12:00",
@@ -133,7 +127,6 @@ export const MOCK_TASKS: Task[] = [
     description: "",
     links: [],
     status: "todo",
-    priority: "low",
     position: "n",
     dueDate: "2026-06-30",
     dueTime: null,
@@ -150,7 +143,6 @@ export const MOCK_TASKS: Task[] = [
     description: "プリンタのトナーが残りわずか。",
     links: [],
     status: "todo",
-    priority: "low",
     position: "h",
     dueDate: null,
     dueTime: null,
@@ -167,7 +159,6 @@ export const MOCK_TASKS: Task[] = [
     description: "",
     links: [],
     status: "done",
-    priority: "normal",
     position: "h",
     dueDate: null,
     dueTime: null,
@@ -183,7 +174,6 @@ export const MOCK_TASKS: Task[] = [
     description: "",
     links: [],
     status: "done",
-    priority: "normal",
     position: "n",
     dueDate: null,
     dueTime: null,
@@ -204,7 +194,6 @@ export const MOCK_EVENTS: EventItem[] = [
     allDay: false,
     location: null,
     notes: null,
-    color: null,
   },
   {
     id: "evt-2",
@@ -214,7 +203,6 @@ export const MOCK_EVENTS: EventItem[] = [
     allDay: false,
     location: "本社 会議室A",
     notes: "見積もり提示",
-    color: "cat-1",
   },
   {
     id: "evt-3",
@@ -224,7 +212,6 @@ export const MOCK_EVENTS: EventItem[] = [
     allDay: false,
     location: null,
     notes: null,
-    color: "cat-4",
   },
   // 火曜 6/16
   {
@@ -235,7 +222,6 @@ export const MOCK_EVENTS: EventItem[] = [
     allDay: false,
     location: "オンライン",
     notes: null,
-    color: null,
   },
   // 水曜 6/17
   {
@@ -246,7 +232,6 @@ export const MOCK_EVENTS: EventItem[] = [
     allDay: false,
     location: null,
     notes: null,
-    color: null,
   },
   // 木曜 6/18 — 終日予定
   {
@@ -257,7 +242,6 @@ export const MOCK_EVENTS: EventItem[] = [
     allDay: true,
     location: "大阪支社",
     notes: null,
-    color: "cat-2",
   },
 ];
 

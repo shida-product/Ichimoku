@@ -1,8 +1,7 @@
 import { ExternalLink, Plus, Star, Trash2, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppData } from "@/store/AppDataContext";
-import { isFlagged, PRIORITY_LABEL, PRIORITY_ORDER, type TaskLink } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { isFlagged, type TaskLink } from "@/lib/types";
 import {
   AutoInput,
   AutoTextarea,
@@ -180,34 +179,6 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
         >
           <Plus className="size-3.5" /> リンクを追加
         </button>
-      </div>
-
-      {/* 優先度（高/中/低） */}
-      <div>
-        <span className="mb-1.5 block text-xs text-muted-foreground">優先度</span>
-        <div className="flex gap-1.5">
-          {PRIORITY_ORDER.map((p) => {
-            const active = task.priority === p;
-            return (
-              <button
-                key={p}
-                type="button"
-                aria-pressed={active}
-                onClick={() => patch({ priority: p })}
-                className={cn(
-                  "flex-1 cursor-pointer rounded-md border px-2.5 py-1.5 text-[13px] transition-colors",
-                  active
-                    ? p === "high"
-                      ? "border-crit/45 bg-crit-soft text-crit"
-                      : "border-primary/45 bg-primary/10 text-primary"
-                    : "border-input text-muted-foreground hover:bg-secondary hover:text-foreground"
-                )}
-              >
-                {PRIORITY_LABEL[p]}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* 締切（プログレッシブ表示） */}

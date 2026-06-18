@@ -5,13 +5,7 @@ import { addDays, formatTime, parseIso, weekdayLabel, ymd } from "@/lib/calendar
 import { dueUrgency, parseDate, urgencyClasses } from "@/lib/date";
 import { ShiftChip } from "@/features/shifts/ShiftChip";
 import { useHighlight } from "@/features/board/HighlightContext";
-import { slotVar } from "@/lib/palette";
 import { cn } from "@/lib/utils";
-
-/** 予定アクセントバーの色（color スロットがあればその色、なければ既定クラス色）。 */
-function accentStyle(color: string | null): React.CSSProperties | undefined {
-  return color ? { background: slotVar(color) } : undefined;
-}
 
 /** 複数日にまたぐ予定の、指定日における時刻ラベル */
 function timedLabel(e: EventItem, dy: string): string {
@@ -215,13 +209,7 @@ export function Agenda({
                           onClick={() => onOpenEvent(e.id)}
                           className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
                         >
-                          <span
-                            className={cn(
-                              "mt-px w-1 shrink-0 self-stretch rounded-full",
-                              !e.color && "bg-muted-foreground/40"
-                            )}
-                            style={accentStyle(e.color)}
-                          />
+                          <span className="mt-px w-1 shrink-0 self-stretch rounded-full bg-muted-foreground/40" />
                           <span className="w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
                             終日
                           </span>
@@ -237,13 +225,7 @@ export function Agenda({
                           onClick={() => onOpenEvent(e.id)}
                           className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
                         >
-                          <span
-                            className={cn(
-                              "mt-px w-1 shrink-0 self-stretch rounded-full",
-                              !e.color && "bg-primary/50"
-                            )}
-                            style={accentStyle(e.color)}
-                          />
+                          <span className="mt-px w-1 shrink-0 self-stretch rounded-full bg-primary/50" />
                           <span className="w-[5.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
                             {timedLabel(e, dy)}
                           </span>

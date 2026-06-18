@@ -27,18 +27,6 @@ export function isFlagged(status: TaskStatus): boolean {
   return status === "doing";
 }
 
-/** タスクの優先度（DB: tasks.priority）。既定は `normal`。 */
-export type TaskPriority = "high" | "normal" | "low";
-
-/** 優先度の表示順（高→低）と日本語ラベル */
-export const PRIORITY_ORDER: TaskPriority[] = ["high", "normal", "low"];
-
-export const PRIORITY_LABEL: Record<TaskPriority, string> = {
-  high: "高",
-  normal: "中",
-  low: "低",
-};
-
 /** タスクのリンク（DB: tasks.links JSONB の各要素） */
 export interface TaskLink {
   title: string; // ラベル（任意）
@@ -61,7 +49,6 @@ export interface Task {
   description: string; // メモ（プレーンテキスト）
   links: TaskLink[];
   status: TaskStatus;
-  priority: TaskPriority; // 優先度（既定 'normal'）
   position: string;
   dueDate: string | null; // 'YYYY-MM-DD'。null = 締切なし
   dueTime: string | null; // 'HH:mm'。null = 時刻指定なし（dueDate がある時のみ意味を持つ）
@@ -80,7 +67,6 @@ export interface EventItem {
   allDay: boolean;
   location: string | null;
   notes: string | null;
-  color: string | null; // 分類色スロット "cat-N"。null = 既定色（テーマの primary 系アクセント）
 }
 
 /** 締切の緊急度（近日締切レーン・締切チップの色分け） */
