@@ -207,7 +207,7 @@ export function Agenda({
                           key={e.id}
                           type="button"
                           onClick={() => onOpenEvent(e.id)}
-                          className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
+                          className="flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent"
                         >
                           <Clock className="mt-0.5 size-3 shrink-0 text-muted-foreground/70" />
                           <span className="w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
@@ -223,7 +223,7 @@ export function Agenda({
                           key={e.id}
                           type="button"
                           onClick={() => onOpenEvent(e.id)}
-                          className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
+                          className="flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent"
                         >
                           <Clock className="mt-0.5 size-3 shrink-0 text-primary/70" />
                           <span className="w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
@@ -259,25 +259,23 @@ export function Agenda({
                               setHighlightDate(null);
                             }}
                             className={cn(
-                              "flex items-start gap-2 rounded-md border px-2 py-1.5 text-left transition-[filter]",
+                              "flex items-start gap-2 rounded-md border px-2 py-1 text-left transition-[filter]",
                               uc.bg,
                               uc.border,
                               "hover:brightness-[0.97]"
                             )}
                           >
                             <Flag className={cn("mt-0.5 size-3 shrink-0", uc.text)} />
-                            <span className="min-w-0 flex-1">
-                              <span
-                                className={cn(
-                                  "block text-[11px] font-medium whitespace-nowrap tabular",
-                                  uc.text
-                                )}
-                              >
-                                締切{t.dueTime ? ` ${t.dueTime}` : ""}
-                              </span>
-                              <span className="mt-0.5 block truncate text-[13px] font-medium">
-                                {t.title || "（無題）"}
-                              </span>
+                            <span
+                              className={cn(
+                                "w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap tabular",
+                                uc.text
+                              )}
+                            >
+                              締切{t.dueTime ? ` ${t.dueTime}` : ""}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate pt-px text-[13px] font-medium">
+                              {t.title || "（無題）"}
                             </span>
                           </button>
                         );
