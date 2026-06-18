@@ -3,6 +3,7 @@ import { ChevronUp, Clock, Flag, Plus } from "lucide-react";
 import type { EventItem, Shift, ShiftType, Task } from "@/lib/types";
 import { addDays, formatTime, parseIso, weekdayLabel, ymd } from "@/lib/calendar";
 import { dueUrgency, parseDate, urgencyClasses } from "@/lib/date";
+import { isHoliday } from "@/lib/holidays";
 import { ShiftChip } from "@/features/shifts/ShiftChip";
 import { useHighlight } from "@/features/board/HighlightContext";
 import { cn } from "@/lib/utils";
@@ -131,6 +132,10 @@ export function Agenda({
           const isToday = dy === todayYmd;
           const prev = di > 0 ? days[di - 1] : null;
           const showMonth = !prev || prev.getMonth() !== day.getMonth();
+          // 曜日色: 日曜・祝日＝赤(crit) / 土曜＝青(primary) / 平日＝既定。今日は別途強調。
+          const dow = day.getDay();
+          const dayColor =
+            dow === 0 || isHoliday(day) ? "text-crit" : dow === 6 ? "text-primary" : null;
 
           // その日を含む予定（複数日にまたぐ予定は各日に表示）
           const ofDay = events.filter((e) => {
@@ -163,13 +168,20 @@ export function Agenda({
               >
                 {/* 日付列（曜日・日付・勤務地チップを縦に並べる＝勤務地は日付の真下） */}
                 <div className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 pt-0.5 select-none">
-                  <span className={cn("text-[11px]", isToday ? "text-primary" : "text-ink-3")}>
+                  <span
+                    className={cn(
+                      "text-[11px]",
+                      isToday ? "text-primary" : (dayColor ?? "text-ink-3")
+                    )}
+                  >
                     {weekdayLabel(day)}
                   </span>
                   <span
                     className={cn(
                       "flex size-7 items-center justify-center rounded-full text-[14px] font-semibold tabular",
-                      isToday ? "bg-primary text-primary-foreground" : "text-foreground"
+                      isToday
+                        ? "bg-primary text-primary-foreground"
+                        : (dayColor ?? "text-foreground")
                     )}
                   >
                     {day.getDate()}
