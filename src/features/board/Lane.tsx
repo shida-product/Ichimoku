@@ -23,6 +23,7 @@ export function Lane({
   onToggle,
   muted,
   variant = "row",
+  gridCols,
 }: {
   categoryKey: string;
   name: string;
@@ -33,6 +34,8 @@ export function Lane({
   /** 未分類レーン用の控えめな見た目 */
   muted?: boolean;
   variant?: "column" | "row";
+  /** 全幅（row）グリッド時の列数。カテゴリ列と同じレスポンシブ列数を渡す。 */
+  gridCols?: number;
 }) {
   const isColumn = variant === "column";
   // 列モードのみ並べ替え対象（未分類の行は disabled）。
@@ -51,6 +54,7 @@ export function Lane({
       >
         {name}
       </span>
+      <span className="text-[11px] text-ink-3">{tasks.length}</span>
       <ChevronDown
         className={cn(
           "ml-auto size-3.5 text-ink-3 transition-transform",
@@ -67,6 +71,7 @@ export function Lane({
         isEmpty={tasks.length === 0}
         itemIds={tasks.map((t) => t.id)}
         grid={!isColumn}
+        gridCols={gridCols}
       >
         {tasks.map((t) => (
           <TaskCard key={t.id} task={t} />

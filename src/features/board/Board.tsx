@@ -75,13 +75,32 @@ export function Board() {
   // 空き列ができて右側が間延びしないよう、列数はカテゴリ数を上限にする。
   const effectiveCols = Math.max(1, Math.min(colCount, orderedCats.length));
 
-  // カテゴリを round-robin で effectiveCols 列に振り分ける（列分配マソンリー）。
-  // index i → 列 i % effectiveCols。各列は中身の高さで独立に縦積みされるため、
-  // あふれた分は先頭列の真下に自然に潜り込む。
+  // 各レーンの高さを内容から推定（厳密な実測でなく、列バランス用の近似）。
+  // 見出し＋カード（タイトル）＋メモ（2行クランプ）＋締切チップ分を概算で足す。
+  const laneWeight = (catId: string): number => {
+    if (collapsed.has(catId)) return 1; // 折りたたみ時は見出しのみ
+    let w = 1.6; // 見出し＋上下余白
+    for (const t of orderedTasks(catId)) {
+      w += 1; // カード基本（タイトル）
+      if (t.description.trim()) w += 0.8; // メモ（2行クランプ）
+      if (t.dueDate) w += 0.5; // 締切チップ行
+    }
+    return w;
+  };
+
+  // 列分配マソンリー（可変式）: カテゴリを順に「いま最も低い列」へ入れる。
+  // round-robin（index % 列数）と違い、5 つ目が必ず 2 列目下に来るのではなく、
+  // その時点で最短の列（例: 3 列目）の下へ潜り込み、列の高さが揃いやすくなる。
   const columns: Category[][] = Array.from({ length: effectiveCols }, () => []);
-  orderedCats.forEach((cat, index) => {
-    columns[index % effectiveCols].push(cat);
-  });
+  const colHeights = new Array<number>(effectiveCols).fill(0);
+  for (const cat of orderedCats) {
+    let target = 0;
+    for (let i = 1; i < effectiveCols; i++) {
+      if (colHeights[i] < colHeights[target]) target = i;
+    }
+    columns[target].push(cat);
+    colHeights[target] += laneWeight(cat.id);
+  }
 
   return (
     <section className="relative flex min-h-0 flex-col rounded-lg border border-border bg-card">
@@ -138,6 +157,7 @@ export function Board() {
           collapsed={collapsed.has(UNCAT_KEY)}
           onToggle={() => toggle(UNCAT_KEY)}
           muted
+          gridCols={colCount}
         />
 
         {/* カテゴリはカンバン型カラム。1 行あたり最大 3 列で、枠幅に応じて 1〜3 列に
