@@ -16,7 +16,6 @@ interface ManageListPanelProps<T extends ManageListItem> {
   emptyMessage: string;
   footer: ReactNode;
   items: T[];
-  countOf: (id: string) => number;
   onAdd: (name: string) => void;
   onRename: (id: string, name: string) => void;
   onColorChange: (id: string, color: string | null) => void;
@@ -35,7 +34,6 @@ export function ManageListPanel<T extends ManageListItem>({
   emptyMessage,
   footer,
   items,
-  countOf,
   onAdd,
   onRename,
   onColorChange,
@@ -82,9 +80,6 @@ export function ManageListPanel<T extends ManageListItem>({
                   onValueChange={(v) => onRename(item.id, v)}
                   className="min-w-0 flex-1 bg-transparent px-1 py-1 text-[13px] outline-none focus:bg-secondary"
                 />
-                <span className="shrink-0 px-1 text-[11px] text-ink-3" title="使用数">
-                  {countOf(item.id)}
-                </span>
                 <Button
                   type="button"
                   variant="ghost"

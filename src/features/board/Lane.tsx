@@ -51,7 +51,6 @@ export function Lane({
       >
         {name}
       </span>
-      <span className="text-[11px] text-ink-3">{tasks.length}</span>
       <ChevronDown
         className={cn(
           "ml-auto size-3.5 text-ink-3 transition-transform",

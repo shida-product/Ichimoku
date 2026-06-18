@@ -5,15 +5,12 @@ import { ManageListPanel } from "@/features/_shared/ManageListPanel";
 export function CategoryManager({ onClose }: { onClose: () => void }) {
   const {
     categories,
-    tasks,
     addCategory,
     renameCategory,
     deleteCategory,
     reorderCategory,
     setCategoryColor,
   } = useAppData();
-
-  const countOf = (id: string) => tasks.filter((t) => t.categoryId === id).length;
 
   return (
     <ManageListPanel
@@ -22,7 +19,6 @@ export function CategoryManager({ onClose }: { onClose: () => void }) {
       emptyMessage="カテゴリがありません。上から追加できます。"
       footer="削除したカテゴリのタスクは「未分類」へ移動します（破棄されません）。"
       items={categories}
-      countOf={countOf}
       onAdd={addCategory}
       onRename={renameCategory}
       onColorChange={setCategoryColor}
