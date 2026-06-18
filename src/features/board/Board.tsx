@@ -26,7 +26,7 @@ function catColor(c: Category, index: number): string {
  * （近日締切レーンと共有）が受け持つ。ここはレーン描画と表示状態のみを担う。
  */
 export function Board() {
-  const { categories, archivedTasks, addTask } = useAppData();
+  const { categories, addTask } = useAppData();
   const { orderedTasks, orderedCategories } = useBoardOrder();
   const { openTaskDraft, openHistory } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -163,7 +163,7 @@ export function Board() {
       </div>
 
       {/* 共有の完了ドロップゾーン（ボード下部に固定）。DnD は BoardDndProvider が担う。 */}
-      <CompleteZone totalCount={archivedTasks.length} onOpenHistory={openHistory} />
+      <CompleteZone onOpenHistory={openHistory} />
     </section>
   );
 }

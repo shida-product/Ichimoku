@@ -12,14 +12,7 @@ export const DONE_ZONE_ID = "complete-zone";
  * 誤操作の即時救済は undo トースト、後からの確認・取り消しは「履歴」が担うため、
  * ここはドロップ先＋件数＋履歴導線だけのすっきりした形にする。
  */
-export function CompleteZone({
-  totalCount,
-  onOpenHistory,
-}: {
-  /** 完了（アーカイブ）総数 */
-  totalCount: number;
-  onOpenHistory: () => void;
-}) {
+export function CompleteZone({ onOpenHistory }: { onOpenHistory: () => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: DONE_ZONE_ID });
 
   return (
@@ -33,11 +26,10 @@ export function CompleteZone({
           isOver && "border-transparent bg-accent ring-2 ring-primary/40"
         )}
       >
-        {/* 左: 完了ラベル＋件数 */}
+        {/* 左: 完了ラベル */}
         <span className="flex items-center gap-2">
           <CircleCheckBig className="size-3.5" />
           完了
-          <span className="text-ink-3">{totalCount}</span>
         </span>
         {/* 中央: ドロップ案内（左右の要素に影響されずボックス中央へ。クリックを邪魔しない） */}
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center font-normal text-ink-3">
