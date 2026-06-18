@@ -56,9 +56,9 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
   const addLink = () => patch({ links: [...task.links, { title: "", url: "" }] });
   const removeLink = (index: number) => patch({ links: task.links.filter((_, i) => i !== index) });
 
-  const footer = (
+  // 操作ボタン（削除・未着手へ戻す）はヘッダ直下に固定して見やすくする。
+  const actions = (
     <PanelFooterRow
-      left={`作成 ${fmtDateTime(task.createdAt)} ・ 更新 ${fmtDateTime(task.updatedAt)}`}
       right={
         <>
           {/* 完了タスク（完了履歴から開いた場合）は未着手へ戻せる */}
@@ -91,8 +91,15 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
     />
   );
 
+  // 作成/更新時刻は補足情報として最下部に残す。
+  const footer = (
+    <span className="text-[11px] text-ink-3">
+      作成 {fmtDateTime(task.createdAt)} ・ 更新 {fmtDateTime(task.updatedAt)}
+    </span>
+  );
+
   return (
-    <PanelShell label="タスク" saved={saved} onClose={onClose} footer={footer}>
+    <PanelShell label="タスク" saved={saved} onClose={onClose} actions={actions} footer={footer}>
       {/* タイトル */}
       <AutoInput
         value={task.title}

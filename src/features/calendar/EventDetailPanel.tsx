@@ -134,7 +134,7 @@ export function EventDetailPanel({
   // 編集対象が見つからない（削除済みなど）
   if (eventId && !existing) return null;
 
-  const footer = (
+  const actions = (
     <PanelFooterRow
       left={
         existing ? (
@@ -165,7 +165,7 @@ export function EventDetailPanel({
   );
 
   return (
-    <PanelShell label={existing ? "予定" : "予定を追加"} onClose={onClose} footer={footer}>
+    <PanelShell label={existing ? "予定" : "予定を追加"} onClose={onClose} actions={actions}>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}

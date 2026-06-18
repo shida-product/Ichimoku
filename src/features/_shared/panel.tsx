@@ -144,12 +144,20 @@ export function useSavedFlash() {
   return { saved, flash };
 }
 
-/** 詳細パネルの共通枠（ヘッダ＝ラベル＋保存表示＋閉じる ／ 本体 ／ 任意フッタ） */
+/**
+ * 詳細パネルの共通枠。
+ * - ヘッダ＝ラベル＋保存表示＋閉じる
+ * - `actions`＝保存/削除などの操作行。**ヘッダ直下に固定**し、本体をスクロールしても
+ *   常に見える位置に置く（最下部だと埋もれて見づらいため上部へ）。
+ * - 本体（スクロール領域）
+ * - `footer`＝注意書きなどの補足テキスト用（操作ボタンは `actions` を使う）。
+ */
 export function PanelShell({
   label,
   saved,
   onClose,
   children,
+  actions,
   footer,
 }: {
   label: string;
@@ -157,34 +165,41 @@ export function PanelShell({
   saved?: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  /** 保存/削除などの操作行。ヘッダ直下に固定表示する。 */
+  actions?: React.ReactNode;
+  /** 注意書きなどの補足テキスト（最下部）。 */
   footer?: React.ReactNode;
 }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] tracking-[0.04em] text-ink-3">{label}</span>
-        <div className="flex items-center gap-3">
-          {saved !== undefined ? (
-            <span
-              className={`text-[11px] text-primary transition-opacity ${saved ? "opacity-100" : "opacity-0"}`}
+      {/* ヘッダ＋操作行（スクロールしても残る固定ブロック） */}
+      <div className="shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] tracking-[0.04em] text-ink-3">{label}</span>
+          <div className="flex items-center gap-3">
+            {saved !== undefined ? (
+              <span
+                className={`text-[11px] text-primary transition-opacity ${saved ? "opacity-100" : "opacity-0"}`}
+              >
+                保存済み ✓
+              </span>
+            ) : null}
+            <button
+              type="button"
+              aria-label="閉じる"
+              onClick={onClose}
+              className="text-ink-3 transition-colors hover:text-foreground"
             >
-              保存済み ✓
-            </span>
-          ) : null}
-          <button
-            type="button"
-            aria-label="閉じる"
-            onClick={onClose}
-            className="text-ink-3 transition-colors hover:text-foreground"
-          >
-            <X className="size-[18px]" />
-          </button>
+              <X className="size-[18px]" />
+            </button>
+          </div>
         </div>
+        {actions ? <div className="mt-3 border-t border-border pt-3">{actions}</div> : null}
       </div>
 
       <div className="mt-3 flex flex-1 flex-col gap-4 overflow-auto">{children}</div>
 
-      {footer ? <div className="mt-2 border-t border-border pt-3">{footer}</div> : null}
+      {footer ? <div className="mt-2 shrink-0 border-t border-border pt-3">{footer}</div> : null}
     </div>
   );
 }
