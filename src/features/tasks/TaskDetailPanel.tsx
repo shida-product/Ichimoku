@@ -1,4 +1,4 @@
-import { ExternalLink, Plus, Star, Trash2, Undo2, X } from "lucide-react";
+import { CircleCheckBig, ExternalLink, Plus, Star, Trash2, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppData } from "@/store/AppDataContext";
 import { isFlagged, type TaskLink } from "@/lib/types";
@@ -35,7 +35,8 @@ function fmtDateTime(iso: string): string {
  * 追加も既存編集も同じこのパネルで行う。
  */
 export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: () => void }) {
-  const { tasks, archivedTasks, categories, updateTask, deleteTask, uncompleteTask } = useAppData();
+  const { tasks, archivedTasks, categories, updateTask, completeTask, deleteTask, uncompleteTask } =
+    useAppData();
   const { saved, flash } = useSavedFlash();
   // 詳細は active / archived（完了履歴）の両方から開かれる。
   const task = tasks.find((t) => t.id === taskId) ?? archivedTasks.find((t) => t.id === taskId);
@@ -57,13 +58,14 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
   const addLink = () => patch({ links: [...task.links, { title: "", url: "" }] });
   const removeLink = (index: number) => patch({ links: task.links.filter((_, i) => i !== index) });
 
-  // 操作ボタン（削除・未着手へ戻す）は入力項目の直下に置く。
+  // 操作ボタン（完了・削除・未着手へ戻す）は入力項目の直下に置く。
+  // 完了＝ドラッグでの完了ゾーン投入と同じ（即アーカイブ）。モーダルからも消化できるように。
   const actionRow = (
     <PanelFooterRow
       right={
         <>
-          {/* 完了タスク（完了履歴から開いた場合）は未着手へ戻せる */}
           {done ? (
+            // 完了タスク（完了履歴から開いた場合）は未着手へ戻せる
             <Button
               type="button"
               variant="ghost"
@@ -75,7 +77,19 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
             >
               <Undo2 className="size-3.5" /> 未着手へ戻す
             </Button>
-          ) : null}
+          ) : (
+            // 未完了タスクはここから完了（消化）できる
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                completeTask(task.id);
+                onClose();
+              }}
+            >
+              <CircleCheckBig className="size-3.5" /> 完了
+            </Button>
+          )}
           <Button
             type="button"
             variant="destructive"
