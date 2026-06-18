@@ -33,7 +33,7 @@ export function DueChip({ dueDate }: { dueDate: string }) {
 export function TaskCard({ task }: { task: Task }) {
   const { openTask } = useOverlay();
   const { updateTask } = useAppData();
-  const { highlightId } = useHighlight();
+  const { highlightId, setHighlightId, setHighlightDate } = useHighlight();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
@@ -52,6 +52,15 @@ export function TaskCard({ task }: { task: Task }) {
       role="button"
       tabIndex={0}
       onClick={() => openTask(task.id)}
+      // ホバーで締切カラム／カレンダーの該当箇所を連動ハイライト（締切カードからの逆方向）。
+      onPointerEnter={() => {
+        setHighlightId(task.id);
+        setHighlightDate(task.dueDate ?? null);
+      }}
+      onPointerLeave={() => {
+        setHighlightId(null);
+        setHighlightDate(null);
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();

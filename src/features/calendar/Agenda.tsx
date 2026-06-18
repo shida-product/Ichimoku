@@ -60,7 +60,9 @@ export function Agenda({
   onManageShifts,
 }: AgendaProps) {
   const base = parseDate(todayYmd); // 今日 0:00
-  const { highlightDate } = useHighlight(); // 近日締切カードのホバー連動
+  // 近日締切 ⇄ ボード ⇄ カレンダーのホバー連動。highlightDate で該当日を強調し、
+  // 締切タスク表示にホバーされたら逆方向に id／日付をセットして他ビューを点灯させる。
+  const { highlightDate, setHighlightId, setHighlightDate } = useHighlight();
   const [startOffset, setStartOffset] = useState(-INITIAL_PAST);
   const [endOffset, setEndOffset] = useState(INITIAL_FUTURE);
 
@@ -247,6 +249,14 @@ export function Agenda({
                             key={t.id}
                             type="button"
                             onClick={() => onOpenTask(t.id)}
+                            onPointerEnter={() => {
+                              setHighlightId(t.id);
+                              setHighlightDate(dy);
+                            }}
+                            onPointerLeave={() => {
+                              setHighlightId(null);
+                              setHighlightDate(null);
+                            }}
                             className="flex items-start gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
                           >
                             <span

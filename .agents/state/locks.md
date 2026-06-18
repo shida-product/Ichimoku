@@ -22,7 +22,7 @@
 
 | セッション ID | ロックファイル | 目的（1行） | 更新時刻 |
 | ------------- | -------------- | ----------- | -------- |
-| claude-20260618-redesign | src/features/board/TaskCard.tsx, src/features/deadlines/DeadlineRail.tsx, src/features/calendar/Agenda.tsx | 近日締切⇄ボード⇄カレンダーのホバーハイライトを双方向化 | 2026-06-18 |
+| （なし）      | —              | —           | —        |
 
 > 2026-06-16: 旧 tampermonkey ロック（stale・該当ブランチは main へ統合のうえ削除済み）を掃除。
 
