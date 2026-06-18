@@ -134,7 +134,7 @@ export function EventDetailPanel({
   // 編集対象が見つからない（削除済みなど）
   if (eventId && !existing) return null;
 
-  const actions = (
+  const actionRow = (
     <PanelFooterRow
       left={
         existing ? (
@@ -165,7 +165,7 @@ export function EventDetailPanel({
   );
 
   return (
-    <PanelShell label={existing ? "予定" : "予定を追加"} onClose={onClose} actions={actions}>
+    <PanelShell label={existing ? "予定" : "予定を追加"} onClose={onClose}>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -244,6 +244,9 @@ export function EventDetailPanel({
           className="min-h-[64px]"
         />
       </label>
+
+      {/* 操作（削除・キャンセル・保存）は入力項目の直下に置く */}
+      <div className="border-t border-border pt-3">{actionRow}</div>
     </PanelShell>
   );
 }

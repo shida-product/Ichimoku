@@ -56,8 +56,8 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
   const addLink = () => patch({ links: [...task.links, { title: "", url: "" }] });
   const removeLink = (index: number) => patch({ links: task.links.filter((_, i) => i !== index) });
 
-  // 操作ボタン（削除・未着手へ戻す）はヘッダ直下に固定して見やすくする。
-  const actions = (
+  // 操作ボタン（削除・未着手へ戻す）は入力項目の直下に置く。
+  const actionRow = (
     <PanelFooterRow
       right={
         <>
@@ -99,7 +99,7 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
   );
 
   return (
-    <PanelShell label="タスク" saved={saved} onClose={onClose} actions={actions} footer={footer}>
+    <PanelShell label="タスク" saved={saved} onClose={onClose} footer={footer}>
       {/* タイトル */}
       <AutoInput
         value={task.title}
@@ -241,6 +241,9 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
           {flagged ? "対応中" : "対応中にする"}
         </button>
       )}
+
+      {/* 操作（削除・未着手へ戻す）は入力項目の直下に置く */}
+      <div className="border-t border-border pt-3">{actionRow}</div>
     </PanelShell>
   );
 }
