@@ -85,7 +85,8 @@ export function Board() {
 
   return (
     <section className="relative flex min-h-0 flex-col rounded-lg border border-border bg-card">
-      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+      {/* ヘッダー高さは 3 カラム共通の 52px */}
+      <div className="flex h-[52px] items-center gap-3 border-b border-border px-4">
         <span className="flex shrink-0 items-center gap-2 font-display text-[15px] font-bold">
           <Layout className="size-4 text-muted-foreground" />
           タスクボード

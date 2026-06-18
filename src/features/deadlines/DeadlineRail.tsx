@@ -65,9 +65,10 @@ export function DeadlineRail() {
 
   return (
     <section className="flex min-h-0 flex-col rounded-lg border border-border bg-card">
-      <div className="flex items-center gap-2.5 border-b border-border px-3.5 py-3">
-        <Clock className="size-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium tracking-[0.04em] text-muted-foreground">
+      {/* ヘッダー高さは 3 カラム共通の 52px（ボード/カレンダーのボタン h-7 を含む行に合わせる） */}
+      <div className="flex h-[52px] items-center gap-2 border-b border-border px-4">
+        <span className="flex items-center gap-2 font-display text-[15px] font-bold">
+          <Clock className="size-4 text-muted-foreground" />
           近日締切
         </span>
       </div>
