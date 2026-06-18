@@ -6,7 +6,7 @@ import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
 import { DEADLINE_PREFIX } from "@/features/board/BoardDndProvider";
 import { useHighlight } from "@/features/board/HighlightContext";
-import { daysLabel, dueUrgency, formatMd, urgencyClasses } from "@/lib/date";
+import { daysLabel, dueUrgency, formatDue, urgencyClasses } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
 /** 近日締切カード（ドラッグで完了ゾーンへ・クリックで詳細・ホバーで連動ハイライト）。
@@ -49,7 +49,9 @@ function DeadlineCard({ task }: { task: Task }) {
     >
       <div className="truncate text-[13px] font-medium">{task.title}</div>
       <div className="mt-1 flex items-center justify-between">
-        <span className="text-[11px] text-ink-3 tabular">{formatMd(task.dueDate!)}</span>
+        <span className="text-[11px] text-ink-3 tabular">
+          {formatDue(task.dueDate!, task.dueTime)}
+        </span>
         <span className={`text-[12px] font-medium tabular ${uc.text}`}>
           {daysLabel(task.dueDate!)}
         </span>

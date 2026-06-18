@@ -1,7 +1,8 @@
 import { ExternalLink, Plus, Star, Trash2, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppData } from "@/store/AppDataContext";
-import { isFlagged, type TaskLink } from "@/lib/types";
+import { isFlagged, PRIORITY_LABEL, PRIORITY_ORDER, type TaskLink } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import {
   AutoInput,
   AutoTextarea,
@@ -181,6 +182,34 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
         </button>
       </div>
 
+      {/* 優先度（高/中/低） */}
+      <div>
+        <span className="mb-1.5 block text-xs text-muted-foreground">優先度</span>
+        <div className="flex gap-1.5">
+          {PRIORITY_ORDER.map((p) => {
+            const active = task.priority === p;
+            return (
+              <button
+                key={p}
+                type="button"
+                aria-pressed={active}
+                onClick={() => patch({ priority: p })}
+                className={cn(
+                  "flex-1 cursor-pointer rounded-md border px-2.5 py-1.5 text-[13px] transition-colors",
+                  active
+                    ? p === "high"
+                      ? "border-crit/45 bg-crit-soft text-crit"
+                      : "border-primary/45 bg-primary/10 text-primary"
+                    : "border-input text-muted-foreground hover:bg-secondary hover:text-foreground"
+                )}
+              >
+                {PRIORITY_LABEL[p]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 締切（プログレッシブ表示） */}
       <div>
         <label className="flex cursor-pointer items-center gap-2 text-[13px] select-none">
@@ -188,19 +217,33 @@ export function TaskDetailPanel({ taskId, onClose }: { taskId: string; onClose: 
             type="checkbox"
             checked={task.dueDate !== null}
             onChange={(e) =>
-              patch({ dueDate: e.target.checked ? (task.dueDate ?? "2026-06-20") : null })
+              patch({
+                dueDate: e.target.checked ? (task.dueDate ?? "2026-06-20") : null,
+                // 締切を外したら時刻も解除
+                dueTime: e.target.checked ? task.dueTime : null,
+              })
             }
             className="size-4 accent-primary"
           />
           締切を設定
         </label>
         {task.dueDate !== null && (
-          <input
-            type="date"
-            value={task.dueDate}
-            onChange={(e) => patch({ dueDate: e.target.value || null })}
-            className={`${fieldClass} mt-2`}
-          />
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="date"
+              value={task.dueDate}
+              onChange={(e) => patch({ dueDate: e.target.value || null })}
+              className={`${fieldClass} flex-1`}
+            />
+            <input
+              type="time"
+              value={task.dueTime ?? ""}
+              onChange={(e) => patch({ dueTime: e.target.value || null })}
+              aria-label="締切時刻（任意）"
+              title="締切時刻（任意）"
+              className={`${fieldClass} w-28`}
+            />
+          </div>
         )}
       </div>
 

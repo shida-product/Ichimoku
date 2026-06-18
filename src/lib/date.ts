@@ -31,6 +31,11 @@ export function formatMd(ymd: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+/** 締切表記。時刻があれば 'M/D HH:mm'、なければ 'M/D'。 */
+export function formatDue(ymd: string, time: string | null): string {
+  return time ? `${formatMd(ymd)} ${time}` : formatMd(ymd);
+}
+
 /** 残り日数の人間向けラベル */
 export function daysLabel(due: string, today: string = APP_TODAY): string {
   const d = daysUntil(due, today);

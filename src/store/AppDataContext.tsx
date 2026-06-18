@@ -19,6 +19,7 @@ import type {
   ShiftType,
   Task,
   TaskLink,
+  TaskPriority,
   TaskStatus,
 } from "@/lib/types";
 
@@ -94,8 +95,10 @@ interface TaskRow {
   description: string | null;
   links: TaskLink[] | null;
   status: TaskStatus;
+  priority: TaskPriority | null;
   position: string;
   due_date: string | null;
+  due_time: string | null;
   completed_at: string | null;
   archived_at: string | null;
   created_at: string;
@@ -109,6 +112,7 @@ interface EventRow {
   all_day: boolean;
   location: string | null;
   notes: string | null;
+  color: string | null;
 }
 interface ShiftTypeRow {
   id: string;
@@ -133,8 +137,10 @@ function rowToTask(r: TaskRow): Task {
     description: r.description ?? "",
     links: r.links ?? [],
     status: r.status,
+    priority: r.priority ?? "normal",
     position: r.position,
     dueDate: r.due_date,
+    dueTime: r.due_time,
     completedAt: r.completed_at,
     archivedAt: r.archived_at,
     createdAt: r.created_at,
@@ -150,6 +156,7 @@ function rowToEvent(r: EventRow): EventItem {
     allDay: r.all_day,
     location: r.location,
     notes: r.notes,
+    color: r.color,
   };
 }
 function rowToShiftType(r: ShiftTypeRow): ShiftType {
@@ -169,8 +176,10 @@ function taskToInsertRow(t: Task, ownerId: string): Record<string, unknown> {
     description: t.description,
     links: t.links,
     status: t.status,
+    priority: t.priority,
     position: t.position,
     due_date: t.dueDate,
+    due_time: t.dueTime,
     completed_at: t.completedAt,
     archived_at: t.archivedAt,
   };
@@ -184,8 +193,10 @@ function taskPatchToRow(patch: Partial<Task>): Record<string, unknown> {
   if (patch.description !== undefined) row.description = patch.description;
   if (patch.links !== undefined) row.links = patch.links;
   if (patch.status !== undefined) row.status = patch.status;
+  if (patch.priority !== undefined) row.priority = patch.priority;
   if (patch.position !== undefined) row.position = patch.position;
   if (patch.dueDate !== undefined) row.due_date = patch.dueDate;
+  if (patch.dueTime !== undefined) row.due_time = patch.dueTime;
   if (patch.completedAt !== undefined) row.completed_at = patch.completedAt;
   if (patch.archivedAt !== undefined) row.archived_at = patch.archivedAt;
   return row;
@@ -209,6 +220,7 @@ function eventToInsertRow(e: EventItem, ownerId: string): Record<string, unknown
     all_day: e.allDay,
     location: e.location,
     notes: e.notes,
+    color: e.color,
   };
 }
 
@@ -220,6 +232,7 @@ function eventPatchToRow(patch: Partial<EventItem>): Record<string, unknown> {
   if (patch.allDay !== undefined) row.all_day = patch.allDay;
   if (patch.location !== undefined) row.location = patch.location;
   if (patch.notes !== undefined) row.notes = patch.notes;
+  if (patch.color !== undefined) row.color = patch.color;
   return row;
 }
 
@@ -342,6 +355,7 @@ interface AppDataContextValue {
     allDay?: boolean;
     location?: string | null;
     notes?: string | null;
+    color?: string | null;
   }) => string;
   updateEvent: (id: string, patch: Partial<EventItem>) => void;
   deleteEvent: (id: string) => void;
@@ -465,8 +479,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         description: "",
         links: [],
         status: "todo",
+        priority: "normal",
         position: keyBefore(cell.length ? cell[0].position : null),
         dueDate: null,
+        dueTime: null,
         completedAt: null,
         archivedAt: null,
         createdAt: ts,
@@ -751,6 +767,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         allDay: input.allDay ?? false,
         location: input.location ?? null,
         notes: input.notes ?? null,
+        color: input.color ?? null,
       };
       addEventMut.mutate(event);
       return event.id;

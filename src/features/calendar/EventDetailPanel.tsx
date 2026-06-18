@@ -9,6 +9,7 @@ import {
   titleInputClass,
 } from "@/features/_shared/panel";
 import { Switch } from "@/components/ui/switch";
+import { ColorPicker } from "@/features/_shared/ColorPicker";
 import { MiniRangeCalendar, type DateRange } from "@/features/calendar/MiniRangeCalendar";
 import { parseIso, ymd } from "@/lib/calendar";
 import { APP_TODAY } from "@/lib/date";
@@ -67,6 +68,7 @@ export function EventDetailPanel({
         endTime: minToHHMM(e.getHours() * 60 + e.getMinutes()),
         location: existing.location ?? "",
         notes: existing.notes ?? "",
+        color: existing.color,
       };
     }
     const d = initialDate ?? APP_TODAY;
@@ -78,6 +80,7 @@ export function EventDetailPanel({
       endTime: "10:00",
       location: "",
       notes: "",
+      color: null as string | null,
     };
     // eventId/initialDate でこのパネルは再マウントされる（AppShell の key）。初回だけ評価。
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,6 +93,7 @@ export function EventDetailPanel({
   const [endTime, setEndTime] = useState(init.endTime);
   const [location, setLocation] = useState(init.location);
   const [notes, setNotes] = useState(init.notes);
+  const [color, setColor] = useState<string | null>(init.color);
 
   const sameDay = range.start === range.end;
   // 同一日内のときだけ「終了 > 開始」を強制（複数日にまたぐなら任意）
@@ -122,6 +126,7 @@ export function EventDetailPanel({
       allDay,
       location: location.trim() || null,
       notes: notes.trim() || null,
+      color,
     };
     if (existing) {
       updateEvent(existing.id, payload);
@@ -234,6 +239,11 @@ export function EventDetailPanel({
           className={fieldClass}
         />
       </label>
+
+      <div>
+        <span className="mb-1.5 block text-xs text-muted-foreground">色</span>
+        <ColorPicker value={color} onChange={setColor} />
+      </div>
 
       <label className="block">
         <span className="mb-1.5 block text-xs text-muted-foreground">メモ</span>
