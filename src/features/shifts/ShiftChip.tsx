@@ -34,7 +34,7 @@ export function ShiftChip({
   const trigger = current ? (
     <button
       type="button"
-      title="シフトを変更"
+      title="勤務地を変更"
       className="inline-flex max-w-[7.5rem] cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
       style={{
         borderColor: tint(resolveColor(current.color, currentIdx), 40),
@@ -50,16 +50,16 @@ export function ShiftChip({
   ) : (
     <button
       type="button"
-      title="シフトを設定"
+      title="勤務地を設定"
       className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] text-ink-3 transition-colors hover:border-input hover:text-muted-foreground"
     >
       <Plus className="size-3" />
-      シフト
+      勤務地
     </button>
   );
 
   return (
-    <AnchoredPopover open={open} onOpenChange={setOpen} trigger={trigger} title="勤務地・シフト">
+    <AnchoredPopover open={open} onOpenChange={setOpen} trigger={trigger} title="勤務地">
       <div className="flex flex-col gap-0.5">
         {shiftTypes.length === 0 ? (
           <p className="px-1 py-2 text-[12px] text-ink-3">

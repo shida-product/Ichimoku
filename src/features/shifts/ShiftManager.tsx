@@ -11,9 +11,9 @@ export function ShiftManager({ onClose }: { onClose: () => void }) {
   return (
     <ManageListPanel
       label="勤務地管理"
-      addPlaceholder="新しい勤務地・シフト名（例: 渋谷店 / 休み）"
+      addPlaceholder="新しい勤務地名（例: 渋谷店 / 休み）"
       emptyMessage="勤務地がありません。上から追加できます。"
-      footer="削除すると、その勤務地が割り当てられていた日のシフトも外れます。"
+      footer="削除すると、その勤務地が割り当てられていた日の設定も外れます。"
       items={shiftTypes}
       countOf={countOf}
       onAdd={addShiftType}

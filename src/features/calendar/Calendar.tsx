@@ -38,7 +38,7 @@ export function Calendar() {
           >
             今日へ
           </button>
-          <Button variant="outline" size="sm" onClick={openShiftTypes} title="勤務地・シフトを管理">
+          <Button variant="outline" size="sm" onClick={openShiftTypes} title="勤務地を管理">
             <MapPin />
             勤務地
           </Button>
