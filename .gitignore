@@ -19,3 +19,8 @@ explore/
 # 環境・秘密情報
 .env
 .env.*
+
+# Supabase CLI（ローカル生成物・接続情報。マイグレーションSQLは追跡する）
+supabase/.temp/
+supabase/.branches/
+supabase/.env
