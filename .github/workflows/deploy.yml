@@ -1,0 +1,37 @@
+name: GitHub Pages デプロイ
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 手動トリガーも可能にしておく
+
+permissions:
+  contents: write # gh-pages ブランチへのプッシュに必要
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: 依存関係インストール
+        run: npm ci
+
+      - name: ビルド（モックモードで固定）
+        run: npm run build
+        # VITE_SUPABASE_URL を設定しないことで IS_PREVIEW=true となり
+        # モックデータで動作するビルドが生成される。
+
+      - name: GitHub Pages へデプロイ
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
