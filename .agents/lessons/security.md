@@ -33,4 +33,23 @@
 
 ---
 
-> 教訓数: 2 / 最終追記: 2026-06-16 / Master Rules: 3
+### 2026-06-19 [Security][Supabase] 共有プロジェクト同居・RLS の OR 合成・「有効 ≠ 安全」
+
+- **❌ Anti-pattern:**
+  ①複数アプリを 1 つの Supabase プロジェクト・`public` スキーマに同居させ、anon key を共有する。
+  ②`rowsecurity = true`（RLS 有効）だけ見て安全と判断する。
+  ③テーブルに `using(true)` の `{public}` ポリシーと、厳しい email ロックを**両方**置く。
+
+- **✅ Solution / Rule:**
+  - RLS の許可ポリシーは **OR で合成**される。`using(true) {public}` が 1 つでもあれば**全開放が勝つ**。
+    厳しいポリシーを足しても、開きっぱなしを**消さない限り**意味がない。
+  - `anon` key はフロント配布＝公開前提。「anon に GRANT」＋「素通しポリシー」＝**ネット全公開**。
+  - 安全判定は `rowsecurity` ではなく **`pg_policies` の qual/with_check と GRANT 対象ロール**で行う。
+  - 公開フォームは **anon=INSERT のみ**・閲覧は `authenticated`（理想は特定 email）に絞る（`guests` がお手本）。
+  - アプリの分離が要件なら**別プロジェクト**。同一プロジェクトでは「到達」自体は防げない。
+  - 自分のアプリは専用スキーマ＋`anon` 非付与＋`auth.uid()=owner_id` で隔離する（Ichimoku 方式）。
+  - 監査・修正の実例: [docs/supabase-security-audit.md](../../docs/supabase-security-audit.md)
+
+---
+
+> 教訓数: 3 / 最終追記: 2026-06-19 / Master Rules: 3
