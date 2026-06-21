@@ -70,7 +70,7 @@ export function TaskCard({ task }: { task: Task }) {
       className={cn(
         "flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border p-2.5 text-left shadow-[var(--shadow-card)] transition-[border-color,box-shadow,background-color] hover:shadow-[var(--shadow-card-hover)]",
         flagged ? "border-primary/45 ring-1 ring-primary/20" : "border-border hover:border-input",
-        highlighted ? "border-primary ring-1 ring-primary/20 bg-accent/20" : "bg-card",
+        highlighted ? "border-warn bg-warn-soft ring-2 ring-warn/50" : "bg-card",
         isDragging && "opacity-40"
       )}
     >

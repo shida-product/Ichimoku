@@ -162,7 +162,7 @@ export function Agenda({
               <div
                 className={cn(
                   "flex gap-3 px-3 py-2 transition-colors",
-                  dy === highlightDate && "bg-accent/20 ring-1 ring-primary/20 ring-inset"
+                  dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"
                 )}
               >
                 {/* 日付列（曜日・日付・勤務地チップを縦に並べる＝勤務地は日付の真下） */}

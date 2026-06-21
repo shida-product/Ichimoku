@@ -41,7 +41,7 @@ function DeadlineCard({ task }: { task: Task }) {
       className={cn(
         "w-full cursor-pointer touch-none rounded-md border bg-card px-3 py-2 text-left transition-all hover:border-input",
         uc.bar,
-        highlighted && "border-primary ring-1 ring-primary/20 bg-accent/20",
+        highlighted && "border-warn bg-warn-soft ring-2 ring-warn/50",
         isDragging && "opacity-40"
       )}
     >
