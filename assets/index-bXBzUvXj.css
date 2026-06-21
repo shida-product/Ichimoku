@@ -1138,7 +1138,7 @@
     border-color: #0000;
   }
 
-  .border-warn\/30 {
+  .border-warn, .border-warn\/30 {
     border-color: var(--warn);
   }
 
@@ -1160,14 +1160,8 @@
     border-left-color: var(--warn);
   }
 
-  .bg-accent, .bg-accent\/20 {
+  .bg-accent {
     background-color: var(--accent);
-  }
-
-  @supports (color: color-mix(in lab, red, red)) {
-    .bg-accent\/20 {
-      background-color: color-mix(in oklab, var(--accent) 20%, transparent);
-    }
   }
 
   .bg-background, .bg-background\/15 {
@@ -1830,6 +1824,16 @@
 
   .ring-ring {
     --tw-ring-color: var(--ring);
+  }
+
+  .ring-warn\/50 {
+    --tw-ring-color: var(--warn);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .ring-warn\/50 {
+      --tw-ring-color: color-mix(in oklab, var(--warn) 50%, transparent);
+    }
   }
 
   .ring-offset-1 {

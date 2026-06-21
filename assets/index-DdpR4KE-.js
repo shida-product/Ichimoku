@@ -47061,7 +47061,7 @@ function TaskCard({ task }) {
 				openTask(task.id);
 			}
 		},
-		className: cn("flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border p-2.5 text-left shadow-[var(--shadow-card)] transition-[border-color,box-shadow,background-color] hover:shadow-[var(--shadow-card-hover)]", flagged ? "border-primary/45 ring-1 ring-primary/20" : "border-border hover:border-input", highlighted ? "border-primary ring-1 ring-primary/20 bg-accent/20" : "bg-card", isDragging && "opacity-40"),
+		className: cn("flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border p-2.5 text-left shadow-[var(--shadow-card)] transition-[border-color,box-shadow,background-color] hover:shadow-[var(--shadow-card-hover)]", flagged ? "border-primary/45 ring-1 ring-primary/20" : "border-border hover:border-input", highlighted ? "border-warn bg-warn-soft ring-2 ring-warn/50" : "bg-card", isDragging && "opacity-40"),
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-start gap-1.5",
@@ -47975,7 +47975,7 @@ function Agenda({ events, tasks, shiftTypes, shifts, todayYmd, onOpenEvent, onOp
 								"月"
 							]
 						}) : null, /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: cn("flex gap-3 px-3 py-2 transition-colors", dy === highlightDate && "bg-accent/20 ring-1 ring-primary/20 ring-inset"),
+							className: cn("flex gap-3 px-3 py-2 transition-colors", dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"),
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "flex w-[4.5rem] shrink-0 flex-col items-center gap-1 pt-0.5 select-none",
 								children: [
@@ -48175,7 +48175,7 @@ function DeadlineCard({ task }) {
 		onClick: () => openTask(task.id),
 		onPointerEnter: enter,
 		onPointerLeave: leave,
-		className: cn("w-full cursor-pointer touch-none rounded-md border bg-card px-3 py-2 text-left transition-all hover:border-input", uc.bar, highlighted && "border-primary ring-1 ring-primary/20 bg-accent/20", isDragging && "opacity-40"),
+		className: cn("w-full cursor-pointer touch-none rounded-md border bg-card px-3 py-2 text-left transition-all hover:border-input", uc.bar, highlighted && "border-warn bg-warn-soft ring-2 ring-warn/50", isDragging && "opacity-40"),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 			className: "truncate text-[13px] font-medium",
 			children: task.title
