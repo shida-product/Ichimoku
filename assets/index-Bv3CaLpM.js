@@ -33939,40 +33939,39 @@ var supabase = createClient("https://placeholder-project.supabase.co", "placehol
 //#region src/features/auth/AuthContext.tsx
 var AuthContext = (0, import_react.createContext)(void 0);
 function AuthProvider({ children }) {
-	const [user, setUser] = (0, import_react.useState)(null);
-	const [session, setSession] = (0, import_react.useState)(null);
-	const [loading, setLoading] = (0, import_react.useState)(true);
-	(0, import_react.useEffect)(() => {
-		supabase.auth.getSession().then(({ data: { session } }) => {
-			setSession(session);
-			setUser(session?.user ?? null);
-			setLoading(false);
-		});
-		const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-			setSession(session);
-			setUser(session?.user ?? null);
-			setLoading(false);
-		});
-		return () => {
-			subscription.unsubscribe();
-		};
-	}, []);
+	const [user, setUser] = (0, import_react.useState)({
+		email: "preview@example.com",
+		id: "preview-user"
+	});
+	const [session, setSession] = (0, import_react.useState)({ user: {
+		email: "preview@example.com",
+		id: "preview-user"
+	} });
+	const [loading, setLoading] = (0, import_react.useState)(false);
+	(0, import_react.useEffect)(() => {}, []);
 	const signOut = async () => {
 		setLoading(true);
-		try {
-			await supabase.auth.signOut();
-		} catch (error) {
-			console.error("Error signing out:", error);
-		} finally {
-			setLoading(false);
-		}
+		setUser(null);
+		setSession(null);
+		setLoading(false);
+	};
+	const signInMock = (email) => {
+		setUser({
+			email,
+			id: "preview-user"
+		});
+		setSession({ user: {
+			email,
+			id: "preview-user"
+		} });
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthContext.Provider, {
 		value: {
 			user,
 			session,
 			loading,
-			signOut
+			signOut,
+			signInMock
 		},
 		children
 	});
@@ -41858,7 +41857,7 @@ var ChevronUp = createLucideIcon("chevron-up", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-createLucideIcon("circle-alert", [
+var CircleAlert = createLucideIcon("circle-alert", [
 	["circle", {
 		cx: "12",
 		cy: "12",
@@ -41899,7 +41898,7 @@ var CircleCheckBig = createLucideIcon("circle-check-big", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-createLucideIcon("circle-check", [["circle", {
+var CircleCheck = createLucideIcon("circle-check", [["circle", {
 	cx: "12",
 	cy: "12",
 	r: "10",
@@ -42023,7 +42022,7 @@ var History = createLucideIcon("history", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-createLucideIcon("loader-circle", [["path", {
+var LoaderCircle = createLucideIcon("loader-circle", [["path", {
 	d: "M21 12a9 9 0 1 1-6.219-8.56",
 	key: "13zald"
 }]]);
@@ -42033,7 +42032,7 @@ createLucideIcon("loader-circle", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-createLucideIcon("lock", [["rect", {
+var Lock = createLucideIcon("lock", [["rect", {
 	width: "18",
 	height: "11",
 	x: "3",
@@ -42051,7 +42050,7 @@ createLucideIcon("lock", [["rect", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-createLucideIcon("log-in", [
+var LogIn = createLucideIcon("log-in", [
 	["path", {
 		d: "m10 17 5-5-5-5",
 		key: "1bsop3"
@@ -42091,7 +42090,7 @@ var LogOut = createLucideIcon("log-out", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-createLucideIcon("mail", [["path", {
+var Mail = createLucideIcon("mail", [["path", {
 	d: "m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7",
 	key: "132q7q"
 }], ["rect", {
@@ -42226,7 +42225,7 @@ var Undo2 = createLucideIcon("undo-2", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-createLucideIcon("user-plus", [
+var UserPlus = createLucideIcon("user-plus", [
 	["path", {
 		d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
 		key: "1yyitq"
@@ -42265,6 +42264,122 @@ var X = createLucideIcon("x", [["path", {
 	d: "m6 6 12 12",
 	key: "d8bk6v"
 }]]);
+//#endregion
+//#region src/features/auth/AuthScreen.tsx
+function AuthScreen() {
+	const { signInMock } = useAuth();
+	const [mode, setMode] = (0, import_react.useState)("signin");
+	const [email, setEmail] = (0, import_react.useState)("");
+	const [password, setPassword] = (0, import_react.useState)("");
+	const [loading, setLoading] = (0, import_react.useState)(false);
+	const [error, setError] = (0, import_react.useState)(null);
+	const [message, setMessage] = (0, import_react.useState)(null);
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		setLoading(true);
+		setError(null);
+		setMessage(null);
+		setTimeout(() => {
+			if (mode === "signin") signInMock?.(email.trim() || "preview@example.com");
+			else setMessage("確認メールを送信しました。(デモ動作のため実際には送信されません。このままログインタブからログインしてください。)");
+			setLoading(false);
+		}, 500);
+	};
+	const switchMode = (next) => {
+		setMode(next);
+		setError(null);
+		setMessage(null);
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		className: "flex min-h-screen w-full items-center justify-center bg-background p-4",
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "w-full max-w-md",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "mb-8 text-center",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
+					className: "m-0 font-display text-3xl font-bold tracking-[0.04em] text-foreground",
+					children: "Ichimoku"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "mt-2 text-sm text-muted-foreground",
+					children: "経営者のための 1画面・タスク消化型ツール"
+				})]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "rounded-xl border border-border bg-card p-8 shadow-[0_8px_24px_rgba(20,30,28,0.06)]",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mb-6 flex border-b border-border",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: () => switchMode("signin"),
+						className: `flex flex-1 items-center justify-center gap-2 pb-3 text-sm font-semibold transition-colors ${mode === "signin" ? "border-b-2 border-primary text-primary" : "text-ink-3 hover:text-foreground"}`,
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LogIn, { className: "size-4" }), "ログイン"]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: () => switchMode("signup"),
+						className: `flex flex-1 items-center justify-center gap-2 pb-3 text-sm font-semibold transition-colors ${mode === "signup" ? "border-b-2 border-primary text-primary" : "text-ink-3 hover:text-foreground"}`,
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(UserPlus, { className: "size-4" }), "アカウント登録"]
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+					onSubmit: handleSubmit,
+					noValidate: true,
+					className: "space-y-5",
+					children: [
+						error && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-start gap-3 rounded-md border border-crit-soft bg-crit-soft p-3 text-sm text-crit",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleAlert, { className: "size-5 shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: error })]
+						}),
+						message && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-start gap-3 rounded-md border border-accent bg-accent p-3 text-sm text-accent-foreground",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, { className: "size-5 shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: message })]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("label", {
+								className: "text-xs font-semibold tracking-wider text-muted-foreground",
+								children: "メールアドレス"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "relative",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Mail, { className: "absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+									type: "email",
+									required: false,
+									placeholder: "name@example.com",
+									value: email,
+									onChange: (e) => setEmail(e.target.value),
+									disabled: loading,
+									className: "w-full rounded-md border border-input bg-card py-2.5 pr-4 pl-10 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50 placeholder:text-ink-3"
+								})]
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("label", {
+								className: "text-xs font-semibold tracking-wider text-muted-foreground",
+								children: "パスワード"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "relative",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+									type: "password",
+									required: false,
+									placeholder: "••••••••",
+									value: password,
+									onChange: (e) => setPassword(e.target.value),
+									disabled: loading,
+									className: "w-full rounded-md border border-input bg-card py-2.5 pr-4 pl-10 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50 placeholder:text-ink-3"
+								})]
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							type: "submit",
+							size: "lg",
+							disabled: loading,
+							className: "w-full",
+							children: loading ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "size-4 animate-spin" }), "処理中…"] }) : mode === "signin" ? "ログイン" : "新規アカウント登録"
+						})
+					]
+				})]
+			})]
+		})
+	});
+}
 //#endregion
 //#region src/lib/order.ts
 /**
@@ -46872,23 +46987,26 @@ function daysLabel(due, today = APP_TODAY) {
 	if (d === 0) return "今日";
 	return `あと ${d}日`;
 }
-/** 緊急度→Tailwind ユーティリティ（文字色 / 地色 / 枠色）を返す */
+/** 緊急度→Tailwind ユーティリティ（文字色 / 地色 / 枠色 / 左バー色）を返す */
 function urgencyClasses(u) {
 	switch (u) {
 		case "crit": return {
 			text: "text-crit",
 			bg: "bg-crit-soft",
-			border: "border-crit/30"
+			border: "border-crit/30",
+			bar: "border-l-crit border-l-[5px]"
 		};
 		case "warn": return {
 			text: "text-warn",
 			bg: "bg-warn-soft",
-			border: "border-warn/30"
+			border: "border-warn/30",
+			bar: "border-l-warn border-l-[5px]"
 		};
 		default: return {
 			text: "text-muted-foreground",
 			bg: "bg-secondary",
-			border: "border-border"
+			border: "border-border",
+			bar: "border-l-transparent border-l-[3px]"
 		};
 	}
 }
@@ -46943,7 +47061,7 @@ function TaskCard({ task }) {
 				openTask(task.id);
 			}
 		},
-		className: cn("flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border p-2.5 text-left shadow-[var(--shadow-card)] transition-[border-color,box-shadow,background-color] hover:shadow-[var(--shadow-card-hover)]", flagged ? "border-primary/45 ring-1 ring-primary/20" : "border-border hover:border-input", highlighted ? "border-warn bg-warn-soft ring-2 ring-warn/50" : "bg-card", isDragging && "opacity-40"),
+		className: cn("flex w-full cursor-pointer touch-none flex-col gap-1.5 rounded-md border p-2.5 text-left shadow-[var(--shadow-card)] transition-[border-color,box-shadow,background-color] hover:shadow-[var(--shadow-card-hover)]", flagged ? "border-primary/45 ring-1 ring-primary/20" : "border-border hover:border-input", highlighted ? "border-primary ring-1 ring-primary/20 bg-accent/20" : "bg-card", isDragging && "opacity-40"),
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-start gap-1.5",
@@ -47857,7 +47975,7 @@ function Agenda({ events, tasks, shiftTypes, shifts, todayYmd, onOpenEvent, onOp
 								"月"
 							]
 						}) : null, /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: cn("flex gap-3 px-3 py-2 transition-colors", dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"),
+							className: cn("flex gap-3 px-3 py-2 transition-colors", dy === highlightDate && "bg-accent/20 ring-1 ring-primary/20 ring-inset"),
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "flex w-[4.5rem] shrink-0 flex-col items-center gap-1 pt-0.5 select-none",
 								children: [
@@ -47946,7 +48064,7 @@ function Agenda({ events, tasks, shiftTypes, shifts, todayYmd, onOpenEvent, onOp
 												setHighlightId(null);
 												setHighlightDate(null);
 											},
-											className: cn("flex items-start gap-2 rounded-md border px-2 py-1 text-left transition-[filter]", uc.bg, uc.border, "hover:brightness-[0.97]"),
+											className: cn("flex items-start gap-2 rounded-md border bg-card px-2 py-1 text-left hover:border-input", uc.bar),
 											children: [
 												/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flag, { className: cn("mt-0.5 size-3 shrink-0", uc.text) }),
 												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
@@ -48057,7 +48175,7 @@ function DeadlineCard({ task }) {
 		onClick: () => openTask(task.id),
 		onPointerEnter: enter,
 		onPointerLeave: leave,
-		className: cn("w-full cursor-pointer touch-none rounded-md border px-3 py-2 text-left transition-colors", highlighted ? "border-warn bg-warn-soft ring-2 ring-warn/50" : "border-border bg-secondary hover:border-input", isDragging && "opacity-40"),
+		className: cn("w-full cursor-pointer touch-none rounded-md border bg-card px-3 py-2 text-left transition-all hover:border-input", uc.bar, highlighted && "border-primary ring-1 ring-primary/20 bg-accent/20", isDragging && "opacity-40"),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 			className: "truncate text-[13px] font-medium",
 			children: task.title
@@ -49087,6 +49205,140 @@ function ShiftManager({ onClose }) {
 	});
 }
 //#endregion
+//#region src/components/dev/TampermonkeyMockUI.tsx
+function TampermonkeyMockUI() {
+	const { addTask } = useAppData();
+	const [pos, setPos] = (0, import_react.useState)({
+		side: "right",
+		topRatio: .5
+	});
+	const [open, setOpen] = (0, import_react.useState)(false);
+	const [title, setTitle] = (0, import_react.useState)("");
+	const [toast, setToast] = (0, import_react.useState)(null);
+	const [dragging, setDragging] = (0, import_react.useState)(false);
+	const isDragging = (0, import_react.useRef)(false);
+	const hasMoved = (0, import_react.useRef)(false);
+	const startY = (0, import_react.useRef)(0);
+	const tabRef = (0, import_react.useRef)(null);
+	const panelRef = (0, import_react.useRef)(null);
+	(0, import_react.useEffect)(() => {
+		const handleOutsideClick = (e) => {
+			if (!open) return;
+			const path = e.composedPath ? e.composedPath() : [];
+			if (panelRef.current && !path.includes(panelRef.current) && tabRef.current && !path.includes(tabRef.current)) setOpen(false);
+		};
+		document.addEventListener("mousedown", handleOutsideClick);
+		return () => document.removeEventListener("mousedown", handleOutsideClick);
+	}, [open]);
+	(0, import_react.useEffect)(() => {
+		if (!toast) return;
+		const timer = setTimeout(() => {
+			setToast(null);
+		}, 2e3);
+		return () => clearTimeout(timer);
+	}, [toast]);
+	const handlePointerDown = (e) => {
+		isDragging.current = true;
+		setDragging(true);
+		hasMoved.current = false;
+		startY.current = e.clientY;
+		if (tabRef.current) tabRef.current.setPointerCapture(e.pointerId);
+	};
+	const handlePointerMove = (e) => {
+		if (!isDragging.current) return;
+		if (Math.abs(e.clientY - startY.current) > 5) hasMoved.current = true;
+		const vh = window.innerHeight;
+		const vw = window.innerWidth;
+		const rawRatio = e.clientY / vh;
+		const topRatio = Math.max(.05, Math.min(.95, rawRatio));
+		setPos({
+			side: e.clientX < vw / 2 ? "left" : "right",
+			topRatio
+		});
+	};
+	const handlePointerUp = (e) => {
+		if (!isDragging.current) return;
+		isDragging.current = false;
+		setDragging(false);
+		if (tabRef.current) tabRef.current.releasePointerCapture(e.pointerId);
+	};
+	const handleClick = () => {
+		if (hasMoved.current) return;
+		setOpen((prev) => !prev);
+	};
+	const handleSubmit = (e) => {
+		e.preventDefault();
+		const trimmed = title.trim();
+		if (!trimmed) return;
+		try {
+			addTask({ title: trimmed });
+			setTitle("");
+			setOpen(false);
+			setToast("タスクを追加しました ✓");
+		} catch (err) {
+			const errMsg = err instanceof Error ? err.message : String(err);
+			alert("追加失敗: " + errMsg);
+		}
+	};
+	const tabTop = `calc(${pos.topRatio * 100}vh - 32px)`;
+	const panelTop = `calc(${pos.topRatio * 100}vh - 100px)`;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			ref: tabRef,
+			onPointerDown: handlePointerDown,
+			onPointerMove: handlePointerMove,
+			onPointerUp: handlePointerUp,
+			onClick: handleClick,
+			style: { top: tabTop },
+			className: `fixed w-[30px] h-[64px] bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center select-none touch-none shadow-md z-[9998] transition-all duration-150 ease-out cursor-grab active:cursor-grabbing hover:w-[36px] ${dragging ? "opacity-100 scale-105 shadow-[0_4px_12px_rgba(26,115,232,0.3)]" : "opacity-70 hover:opacity-100"} ${pos.side === "right" ? "right-0 rounded-l-lg" : "left-0 rounded-r-lg"}`,
+			title: "ドラッグで移動・左右スナップ / クリックで追加パネル",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+				className: "text-[20px] font-bold leading-none select-none",
+				children: "＋"
+			})
+		}),
+		open && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			ref: panelRef,
+			style: { top: panelTop },
+			className: `fixed w-[300px] bg-card border border-border rounded-lg p-4 shadow-xl z-[9999] animate-in fade-in zoom-in-95 duration-150 ${pos.side === "right" ? "right-[40px]" : "left-[40px]"}`,
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex justify-between items-center mb-3",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-xs text-primary font-bold m-0",
+					children: "＋ Ichimoku にタスクを追加 (デモ)"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					onClick: () => setOpen(false),
+					className: "text-muted-foreground hover:text-primary text-[11px] bg-none border-none p-0 cursor-pointer transition-colors",
+					children: "閉じる"
+				})]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				onSubmit: handleSubmit,
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+					type: "text",
+					value: title,
+					onChange: (e) => setTitle(e.target.value),
+					placeholder: "やることを入力…",
+					className: "w-full border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md px-2.5 py-2 text-sm text-foreground bg-background outline-none transition-all placeholder:text-muted-foreground/60",
+					autoFocus: true
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex justify-between items-center mt-2.5 text-xs text-muted-foreground",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("kbd", {
+						className: "bg-secondary border border-border rounded px-1.5 py-0.5 text-[10px] text-primary font-mono mr-1",
+						children: "Enter"
+					}), "で追加"] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "text-[10px] text-muted-foreground/80 italic",
+						children: "(拡張機能のデモ画面です)"
+					})]
+				})]
+			})]
+		}),
+		toast && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "fixed left-1/2 bottom-[28px] -translate-x-1/2 bg-primary text-primary-foreground px-[18px] py-[10px] rounded-full text-xs shadow-md animate-in fade-in slide-in-from-bottom-5 duration-200 z-[9999]",
+			children: toast
+		})
+	] });
+}
+//#endregion
 //#region src/components/layout/AppShell.tsx
 /**
 * AppShell — 1画面・遷移ゼロのベースレイアウト（仕様 §7 / §3.7）。
@@ -49163,7 +49415,8 @@ function AppShell() {
 				onOpenChange: (o) => !o && closePeek(),
 				label: peek?.label ?? "詳細パネル",
 				children: peek?.node
-			})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TampermonkeyMockUI, {})
 		]
 	});
 }
@@ -49171,6 +49424,14 @@ function AppShell() {
 //#region src/App.tsx
 function App() {
 	const { user, loading } = useAuth();
+	if (loading) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "flex min-h-screen w-full flex-col items-center justify-center gap-4 bg-background text-muted-foreground",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "size-7 animate-spin text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "text-sm font-medium tracking-wider",
+			children: "読み込み中…"
+		})]
+	});
+	if (!user) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthScreen, {});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AppShell, {});
 }
 //#endregion
