@@ -114,6 +114,19 @@ export function Agenda({
   const days: Date[] = [];
   for (let o = startOffset; o <= endOffset; o++) days.push(addDays(base, o));
 
+  // 月ごとにグループ化する（stickyヘッダーを正しくスタックさせるため）
+  const months: { year: number; month: number; days: Date[] }[] = [];
+  let currentMonth: { year: number; month: number; days: Date[] } | null = null;
+  for (const day of days) {
+    const y = day.getFullYear();
+    const m = day.getMonth();
+    if (!currentMonth || currentMonth.year !== y || currentMonth.month !== m) {
+      currentMonth = { year: y, month: m, days: [] };
+      months.push(currentMonth);
+    }
+    currentMonth.days.push(day);
+  }
+
   return (
     <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
       {/* 過去を読み込む */}
@@ -126,179 +139,178 @@ export function Agenda({
         前を表示
       </button>
 
-      <ul className="divide-y divide-border">
-        {days.map((day, di) => {
-          const dy = ymd(day);
-          const isToday = dy === todayYmd;
-          const prev = di > 0 ? days[di - 1] : null;
-          const showMonth = !prev || prev.getMonth() !== day.getMonth();
-          // 曜日色: 日曜・祝日＝赤(crit) / 土曜＝青(primary) / 平日＝既定。今日は別途強調。
-          const dow = day.getDay();
-          const dayColor =
-            dow === 0 || isHoliday(day) ? "text-crit" : dow === 6 ? "text-primary" : null;
+      {months.map(({ year, month, days: monthDays }) => (
+        <div key={`${year}-${month}`} className="relative">
+          <div className="sticky top-0 z-10 bg-secondary/95 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur shadow-sm">
+            {year}年{month + 1}月
+          </div>
+          <ul className="divide-y divide-border">
+            {monthDays.map((day) => {
+              const dy = ymd(day);
+              const isToday = dy === todayYmd;
+              // 曜日色: 日曜・祝日＝赤(crit) / 土曜＝青(primary) / 平日＝既定。今日は別途強調。
+              const dow = day.getDay();
+              const dayColor =
+                dow === 0 || isHoliday(day) ? "text-crit" : dow === 6 ? "text-primary" : null;
 
-          // その日を含む予定（複数日にまたぐ予定は各日に表示）
-          const ofDay = events.filter((e) => {
-            const sY = ymd(parseIso(e.startAt));
-            const enY = ymd(parseIso(e.endAt));
-            return dy >= sY && dy <= enY;
-          });
-          const allDay = ofDay.filter((e) => e.allDay);
-          const timed = ofDay
-            .filter((e) => !e.allDay)
-            .sort((a, b) => (a.startAt < b.startAt ? -1 : a.startAt > b.startAt ? 1 : 0));
-          // この日が締切のタスク（完了は除外）
-          const dueTasks = tasks.filter((t) => t.dueDate === dy && t.status !== "done");
-          const count = allDay.length + timed.length + dueTasks.length;
+              // その日を含む予定（複数日にまたぐ予定は各日に表示）
+              const ofDay = events.filter((e) => {
+                const sY = ymd(parseIso(e.startAt));
+                const enY = ymd(parseIso(e.endAt));
+                return dy >= sY && dy <= enY;
+              });
+              const allDay = ofDay.filter((e) => e.allDay);
+              const timed = ofDay
+                .filter((e) => !e.allDay)
+                .sort((a, b) => (a.startAt < b.startAt ? -1 : a.startAt > b.startAt ? 1 : 0));
+              // この日が締切のタスク（完了は除外）
+              const dueTasks = tasks.filter((t) => t.dueDate === dy && t.status !== "done");
+              const count = allDay.length + timed.length + dueTasks.length;
 
-          return (
-            <li key={dy} ref={isToday ? todayRef : undefined}>
-              {showMonth ? (
-                <div className="sticky top-0 z-10 bg-secondary/95 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur">
-                  {day.getFullYear()}年{day.getMonth() + 1}月
-                </div>
-              ) : null}
-
-              <div
-                className={cn(
-                  "flex gap-3 px-3 py-2 transition-colors",
-                  dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"
-                )}
-              >
-                {/* 日付列（曜日・日付・勤務地チップを縦に並べる＝勤務地は日付の真下） */}
-                <div className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 pt-0.5 select-none">
-                  <span
+              return (
+                <li key={dy} ref={isToday ? todayRef : undefined}>
+                  <div
                     className={cn(
-                      "text-[11px]",
-                      isToday ? "text-primary" : (dayColor ?? "text-ink-3")
+                      "flex gap-3 px-3 py-2 transition-colors",
+                      dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"
                     )}
                   >
-                    {weekdayLabel(day)}
-                  </span>
-                  <span
-                    className={cn(
-                      "flex size-7 items-center justify-center rounded-full text-[14px] font-semibold tabular",
-                      isToday
-                        ? "bg-primary text-primary-foreground"
-                        : (dayColor ?? "text-foreground")
-                    )}
-                  >
-                    {day.getDate()}
-                  </span>
-                  <div className="flex w-full min-w-0 justify-center">
-                    <ShiftChip
-                      shiftTypes={shiftTypes}
-                      currentId={shiftByDate(dy)}
-                      onSelect={(id) => onSetShift(dy, id)}
-                      onManage={onManageShifts}
-                    />
-                  </div>
-                </div>
+                    {/* 日付列（曜日・日付・勤務地チップを縦に並べる＝勤務地は日付の真下） */}
+                    <div className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 pt-0.5 select-none">
+                      <span
+                        className={cn(
+                          "text-[11px]",
+                          isToday ? "text-primary" : (dayColor ?? "text-ink-3")
+                        )}
+                      >
+                        {weekdayLabel(day)}
+                      </span>
+                      <span
+                        className={cn(
+                          "flex size-7 items-center justify-center rounded-full text-[14px] font-semibold tabular",
+                          isToday
+                            ? "bg-primary text-primary-foreground"
+                            : (dayColor ?? "text-foreground")
+                        )}
+                      >
+                        {day.getDate()}
+                      </span>
+                      <div className="flex w-full min-w-0 justify-center">
+                        <ShiftChip
+                          shiftTypes={shiftTypes}
+                          currentId={shiftByDate(dy)}
+                          onSelect={(id) => onSetShift(dy, id)}
+                          onManage={onManageShifts}
+                        />
+                      </div>
+                    </div>
 
-                {/* 内容（予定） */}
-                <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
-                  {/* 予定追加 */}
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => onCreateOn(dy)}
-                      className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent"
-                      aria-label={`${day.getMonth() + 1}/${day.getDate()} に予定を追加`}
-                      title="予定を追加"
-                    >
-                      <Plus className="size-4" />
-                    </button>
-                  </div>
+                    {/* 内容（予定） */}
+                    <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
+                      {/* 予定追加 */}
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => onCreateOn(dy)}
+                          className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent"
+                          aria-label={`${month + 1}/${day.getDate()} に予定を追加`}
+                          title="予定を追加"
+                        >
+                          <Plus className="size-4" />
+                        </button>
+                      </div>
 
-                  {/* 予定リスト */}
-                  {count === 0 ? (
-                    <span className="py-0.5 text-[12px] text-ink-3">予定なし</span>
-                  ) : (
-                    <>
-                      {allDay.map((e) => (
-                        <button
-                          key={e.id}
-                          type="button"
-                          onClick={() => onOpenEvent(e.id)}
-                          className="flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent"
-                        >
-                          <Clock className="mt-0.5 size-3 shrink-0 text-muted-foreground/70" />
-                          <span className="w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
-                            終日
-                          </span>
-                          <span className="min-w-0 flex-1 truncate pt-px text-[13px] font-medium">
-                            {e.title || "（無題）"}
-                          </span>
-                        </button>
-                      ))}
-                      {timed.map((e) => (
-                        <button
-                          key={e.id}
-                          type="button"
-                          onClick={() => onOpenEvent(e.id)}
-                          className="flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent"
-                        >
-                          <Clock className="mt-0.5 size-3 shrink-0 text-primary/70" />
-                          <span className="w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
-                            {timedLabel(e, dy)}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[13px] font-medium">
-                              {e.title || "（無題）"}
-                            </span>
-                            {e.location ? (
-                              <span className="block truncate text-[11px] text-muted-foreground">
-                                {e.location}
-                              </span>
-                            ) : null}
-                          </span>
-                        </button>
-                      ))}
-                      {/* 締切タスク: 予定（平たい行）と区別するため、緊急度色の淡い塗りカード＋旗アイコン。
-                          「自分が消化するもの」を一目で見分けられるようにする（色は種別から自動）。 */}
-                      {dueTasks.map((t) => {
-                        const uc = urgencyClasses(dueUrgency(dy, todayYmd));
-                        return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => onOpenTask(t.id)}
-                            onPointerEnter={() => {
-                              setHighlightId(t.id);
-                              setHighlightDate(dy);
-                            }}
-                            onPointerLeave={() => {
-                              setHighlightId(null);
-                              setHighlightDate(null);
-                            }}
-                            className={cn(
-                              "flex items-start gap-2 rounded-md border bg-card px-2 py-1 text-left hover:border-input",
-                              uc.bar
-                            )}
-                          >
-                            <Flag className={cn("mt-0.5 size-3 shrink-0", uc.text)} />
-                            <span
-                              className={cn(
-                                "w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap tabular",
-                                uc.text
-                              )}
+                      {/* 予定リスト */}
+                      {count === 0 ? (
+                        <span className="py-0.5 text-[12px] text-ink-3">予定なし</span>
+                      ) : (
+                        <>
+                          {allDay.map((e) => (
+                            <button
+                              key={e.id}
+                              type="button"
+                              onClick={() => onOpenEvent(e.id)}
+                              className="flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent"
                             >
-                              締切{t.dueTime ? ` ${t.dueTime}` : ""}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate pt-px text-[13px] font-medium">
-                              {t.title || "（無題）"}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </>
-                  )}
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                              <Clock className="mt-0.5 size-3 shrink-0 text-muted-foreground/70" />
+                              <span className="w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
+                                終日
+                              </span>
+                              <span className="min-w-0 flex-1 truncate pt-px text-[13px] font-medium">
+                                {e.title || "（無題）"}
+                              </span>
+                            </button>
+                          ))}
+                          {timed.map((e) => (
+                            <button
+                              key={e.id}
+                              type="button"
+                              onClick={() => onOpenEvent(e.id)}
+                              className="flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent"
+                            >
+                              <Clock className="mt-0.5 size-3 shrink-0 text-primary/70" />
+                              <span className="w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular">
+                                {timedLabel(e, dy)}
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-[13px] font-medium">
+                                  {e.title || "（無題）"}
+                                </span>
+                                {e.location ? (
+                                  <span className="block truncate text-[11px] text-muted-foreground">
+                                    {e.location}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </button>
+                          ))}
+                          {/* 締切タスク: 予定（平たい行）と区別するため、緊急度色の淡い塗りカード＋旗アイコン。
+                              「自分が消化するもの」を一目で見分けられるようにする（色は種別から自動）。 */}
+                          {dueTasks.map((t) => {
+                            const uc = urgencyClasses(dueUrgency(dy, todayYmd));
+                            return (
+                              <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => onOpenTask(t.id)}
+                                onPointerEnter={() => {
+                                  setHighlightId(t.id);
+                                  setHighlightDate(dy);
+                                }}
+                                onPointerLeave={() => {
+                                  setHighlightId(null);
+                                  setHighlightDate(null);
+                                }}
+                                className={cn(
+                                  "flex items-start gap-2 rounded-md border bg-card px-2 py-1 text-left hover:border-input",
+                                  uc.bar
+                                )}
+                              >
+                                <Flag className={cn("mt-0.5 size-3 shrink-0", uc.text)} />
+                                <span
+                                  className={cn(
+                                    "w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap tabular",
+                                    uc.text
+                                  )}
+                                >
+                                  締切{t.dueTime ? ` ${t.dueTime}` : ""}
+                                </span>
+                                <span className="min-w-0 flex-1 truncate pt-px text-[13px] font-medium">
+                                  {t.title || "（無題）"}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
 
       {/* 未来方向の無限スクロール用センチネル */}
       <div ref={bottomRef} className="h-1" />
