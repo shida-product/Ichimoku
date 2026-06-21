@@ -38,14 +38,14 @@ from pg_policies where schemaname = 'public' order by tablename, policyname;
 `public` 全テーブルが `anon`/`authenticated` に **GRANT ALL**（= Supabase 既定。保護は RLS 依存）。
 ポリシーの中身で判定:
 
-| テーブル | 現状 | 判定 | 確定した認証方式（ユーザー回答） |
-|---|---|---|---|
-| ogi_staff / ogi_shift_assignments / ogi_shift_requests / ogi_monthly_settings | `{public}` ALL `true` のみ | 🔴 誰でも全件可（スタッフ名・シフト流出） | **特定アカウントで固定ログイン**（メール未確認） |
-| reception_tickets | `{public}` の SELECT/INSERT/UPDATE/DELETE | 🔴 誰でも全件可（来客情報） | **ログインなしの受付端末(anon)** |
-| ringo_staff / ringo_shift_assignments / ringo_shift_requests | email ロック有 **だが** `{public}` ALL `true` 併存で無効化 | 🔴 誰でも全件可 | **ringo@shift.com で固定ログイン** |
-| questionnaire_responses | `anon` に SELECT `true`・UPDATE `true`（INSERT は妥当） | 🔴 回答が誰でも閲覧/改ざん可 | **投稿だけ。回答は管理側のみ閲覧** |
-| ringo_questionnaire | `anon`=INSERT のみ／読みは `{authenticated}` 全員 | 🟠 投稿は適切。全ログインユーザーが閲覧可 | （任意対応） |
-| guests | `anon`=INSERT のみ／SELECT は `{authenticated}` | 🟢 正しい設計（お手本） | 対応不要 |
+| テーブル                                                                      | 現状                                                       | 判定                                      | 確定した認証方式（ユーザー回答）                 |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------ |
+| ogi_staff / ogi_shift_assignments / ogi_shift_requests / ogi_monthly_settings | `{public}` ALL `true` のみ                                 | 🔴 誰でも全件可（スタッフ名・シフト流出） | **特定アカウントで固定ログイン**（メール未確認） |
+| reception_tickets                                                             | `{public}` の SELECT/INSERT/UPDATE/DELETE                  | 🔴 誰でも全件可（来客情報）               | **ログインなしの受付端末(anon)**                 |
+| ringo_staff / ringo_shift_assignments / ringo_shift_requests                  | email ロック有 **だが** `{public}` ALL `true` 併存で無効化 | 🔴 誰でも全件可                           | **ringo@shift.com で固定ログイン**               |
+| questionnaire_responses                                                       | `anon` に SELECT `true`・UPDATE `true`（INSERT は妥当）    | 🔴 回答が誰でも閲覧/改ざん可              | **投稿だけ。回答は管理側のみ閲覧**               |
+| ringo_questionnaire                                                           | `anon`=INSERT のみ／読みは `{authenticated}` 全員          | 🟠 投稿は適切。全ログインユーザーが閲覧可 | （任意対応）                                     |
+| guests                                                                        | `anon`=INSERT のみ／SELECT は `{authenticated}`            | 🟢 正しい設計（お手本）                   | 対応不要                                         |
 
 ## 3. 修正SQL（ダッシュボードで実行。Ichimoku のマイグレーションには混ぜない）
 
@@ -53,6 +53,7 @@ from pg_policies where schemaname = 'public' order by tablename, policyname;
 > 壊れたら §5 のロールバックを貼って即復旧（データは消えない＝権限変更のみ）。
 
 ### ① questionnaire_responses（投稿だけ）— **情報充足・実行可**
+
 ```sql
 drop policy if exists "anon_select" on public.questionnaire_responses;
 drop policy if exists "anon_update" on public.questionnaire_responses;
@@ -65,9 +66,11 @@ create policy "questionnaire: authenticated read"
 -- 特定管理者限定の例:
 -- using ((auth.jwt() ->> 'email') = 'admin@example.com')
 ```
+
 ⚠ **実行前確認**: 管理画面は**ログインして読んでいるか？**（現状 authenticated 読み取りポリシーが無い＝管理画面も anon で読んでいる疑い。anon 読みなら剥奪で管理画面も見えなくなる）
 
-### ② ringo_*（ringo@shift.com 固定ログイン）— **情報充足・実行可**
+### ② ringo\_\*（ringo@shift.com 固定ログイン）— **情報充足・実行可**
+
 ```sql
 do $$
 declare t text; p record;
@@ -85,10 +88,13 @@ begin
   end loop;
 end $$;
 ```
+
 ⚠ **実行前確認**: ログイン中の **JWT email が `ringo@shift.com` と完全一致**するか（綴り・ドメイン）。
 
-### ③ ogi_*（特定アカウント固定ログイン）— **⛔ メール未確認のため保留**
+### ③ ogi\_\*（特定アカウント固定ログイン）— **⛔ メール未確認のため保留**
+
 **必要な情報: ogi アプリのログインメールアドレス**。確定後 `<OGI_EMAIL>` を置換して実行。
+
 ```sql
 do $$
 declare t text; p record;
@@ -108,18 +114,24 @@ end $$;
 ```
 
 ### ④ reception_tickets（anon 受付端末）— **⚠ 設計判断が必要・部分対応のみ可**
+
 ログインなし＝anon が動かす以上、**anon に渡した権限の分はネット公開**になり完全には隠せない。
+
 - **必要な情報**: 端末がやるのは発券(INSERT)だけか／表示(SELECT)・呼出し更新(UPDATE)も行うか。チケットに**個人情報**が入るか。
 - 最低限、**anon の DELETE は不要**なので撤去推奨（発券・表示は維持）:
+
 ```sql
 drop policy if exists "全削除許可" on public.reception_tickets;
 drop policy if exists "受付システム: 全削除許可" on public.reception_tickets;
 revoke delete on public.reception_tickets from anon;
 ```
+
 ⚠ **実行前確認**: 削除を anon で行っている処理（呼出し済み消し込み等）が無いか。
+
 - 本気で守るなら **受付端末用の固定アカウントでログイン**させ ②型に寄せる（端末用アカウントを1つ作る運用）。
 
 ### ⑤ ringo_questionnaire（任意）
+
 投稿は適切。閲覧を全ログインユーザーから特定管理者に絞りたい場合のみ、`{authenticated} ALL true` を email ロックへ差し替え。
 
 ## 4. リスク評価

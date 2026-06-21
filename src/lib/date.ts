@@ -44,14 +44,34 @@ export function daysLabel(due: string, today: string = APP_TODAY): string {
   return `あと ${d}日`;
 }
 
-/** 緊急度→Tailwind ユーティリティ（文字色 / 地色 / 枠色）を返す */
-export function urgencyClasses(u: DueUrgency): { text: string; bg: string; border: string } {
+/** 緊急度→Tailwind ユーティリティ（文字色 / 地色 / 枠色 / 左バー色）を返す */
+export function urgencyClasses(u: DueUrgency): {
+  text: string;
+  bg: string;
+  border: string;
+  bar: string;
+} {
   switch (u) {
     case "crit":
-      return { text: "text-crit", bg: "bg-crit-soft", border: "border-crit/30" };
+      return {
+        text: "text-crit",
+        bg: "bg-crit-soft",
+        border: "border-crit/30",
+        bar: "border-l-crit border-l-[3px]",
+      };
     case "warn":
-      return { text: "text-warn", bg: "bg-warn-soft", border: "border-warn/30" };
+      return {
+        text: "text-warn",
+        bg: "bg-warn-soft",
+        border: "border-warn/30",
+        bar: "border-l-warn border-l-[3px]",
+      };
     default:
-      return { text: "text-muted-foreground", bg: "bg-secondary", border: "border-border" };
+      return {
+        text: "text-muted-foreground",
+        bg: "bg-secondary",
+        border: "border-border",
+        bar: "border-l-transparent border-l-[3px]",
+      };
   }
 }

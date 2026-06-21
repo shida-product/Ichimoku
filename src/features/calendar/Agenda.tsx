@@ -162,8 +162,7 @@ export function Agenda({
               <div
                 className={cn(
                   "flex gap-3 px-3 py-2 transition-colors",
-                  // 近日締切のハイライトはボード側（TaskCard）と同一指定に統一: warn-soft 地＋warn リング。
-                  dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"
+                  dy === highlightDate && "bg-accent/20 ring-1 ring-primary/20 ring-inset"
                 )}
               >
                 {/* 日付列（曜日・日付・勤務地チップを縦に並べる＝勤務地は日付の真下） */}
@@ -273,10 +272,8 @@ export function Agenda({
                               setHighlightDate(null);
                             }}
                             className={cn(
-                              "flex items-start gap-2 rounded-md border px-2 py-1 text-left transition-[filter]",
-                              uc.bg,
-                              uc.border,
-                              "hover:brightness-[0.97]"
+                              "flex items-start gap-2 rounded-md border bg-card px-2 py-1 text-left hover:border-input",
+                              uc.bar
                             )}
                           >
                             <Flag className={cn("mt-0.5 size-3 shrink-0", uc.text)} />

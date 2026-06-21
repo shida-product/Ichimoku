@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Mail, Lock, Loader2, LogIn, UserPlus, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/features/auth/AuthContext";
+import { IS_PREVIEW } from "@/lib/preview";
 
 export function AuthScreen() {
+  const { signInMock } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,6 +19,20 @@ export function AuthScreen() {
     setLoading(true);
     setError(null);
     setMessage(null);
+
+    if (IS_PREVIEW) {
+      setTimeout(() => {
+        if (mode === "signin") {
+          signInMock?.(email.trim() || "preview@example.com");
+        } else {
+          setMessage(
+            "確認メールを送信しました。(デモ動作のため実際には送信されません。このままログインタブからログインしてください。)"
+          );
+        }
+        setLoading(false);
+      }, 500);
+      return;
+    }
 
     try {
       if (mode === "signin") {
@@ -84,7 +101,7 @@ export function AuthScreen() {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate={IS_PREVIEW} className="space-y-5">
             {error && (
               <div className="flex items-start gap-3 rounded-md border border-crit-soft bg-crit-soft p-3 text-sm text-crit">
                 <AlertCircle className="size-5 shrink-0" />
@@ -107,7 +124,7 @@ export function AuthScreen() {
                 <Mail className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3" />
                 <input
                   type="email"
-                  required
+                  required={!IS_PREVIEW}
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -125,7 +142,7 @@ export function AuthScreen() {
                 <Lock className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3" />
                 <input
                   type="password"
-                  required
+                  required={!IS_PREVIEW}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

@@ -39,11 +39,9 @@ function DeadlineCard({ task }: { task: Task }) {
       onPointerEnter={enter}
       onPointerLeave={leave}
       className={cn(
-        "w-full cursor-pointer touch-none rounded-md border px-3 py-2 text-left transition-colors",
-        // 連動ハイライトはボード(TaskCard)・カレンダー(該当日)と同一指定に統一: warn-soft 地＋warn リング。
-        highlighted
-          ? "border-warn bg-warn-soft ring-2 ring-warn/50"
-          : "border-border bg-secondary hover:border-input",
+        "w-full cursor-pointer touch-none rounded-md border bg-card px-3 py-2 text-left transition-all hover:border-input",
+        uc.bar,
+        highlighted && "border-primary ring-1 ring-primary/20 bg-accent/20",
         isDragging && "opacity-40"
       )}
     >
