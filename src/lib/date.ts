@@ -57,14 +57,14 @@ export function urgencyClasses(u: DueUrgency): {
         text: "text-crit",
         bg: "bg-crit-soft",
         border: "border-crit/30",
-        bar: "border-l-crit border-l-[3px]",
+        bar: "border-l-crit border-l-[5px]",
       };
     case "warn":
       return {
         text: "text-warn",
         bg: "bg-warn-soft",
         border: "border-warn/30",
-        bar: "border-l-warn border-l-[3px]",
+        bar: "border-l-warn border-l-[5px]",
       };
     default:
       return {
