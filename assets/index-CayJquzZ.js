@@ -47936,6 +47936,21 @@ function Agenda({ events, tasks, shiftTypes, shifts, todayYmd, onOpenEvent, onOp
 	}, []);
 	const days = [];
 	for (let o = startOffset; o <= endOffset; o++) days.push(addDays(base, o));
+	const months = [];
+	let currentMonth = null;
+	for (const day of days) {
+		const y = day.getFullYear();
+		const m = day.getMonth();
+		if (!currentMonth || currentMonth.year !== y || currentMonth.month !== m) {
+			currentMonth = {
+				year: y,
+				month: m,
+				days: []
+			};
+			months.push(currentMonth);
+		}
+		currentMonth.days.push(day);
+	}
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		ref: scrollRef,
 		className: "min-h-0 flex-1 overflow-auto",
@@ -47946,144 +47961,145 @@ function Agenda({ events, tasks, shiftTypes, shifts, todayYmd, onOpenEvent, onOp
 				className: "flex w-full cursor-pointer items-center justify-center gap-1 py-2 text-[12px] text-muted-foreground transition-colors hover:bg-accent",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronUp, { className: "size-3.5" }), "前を表示"]
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
-				className: "divide-y divide-border",
-				children: days.map((day, di) => {
-					const dy = ymd(day);
-					const isToday = dy === todayYmd;
-					const prev = di > 0 ? days[di - 1] : null;
-					const showMonth = !prev || prev.getMonth() !== day.getMonth();
-					const dow = day.getDay();
-					const dayColor = dow === 0 || isHoliday(day) ? "text-crit" : dow === 6 ? "text-primary" : null;
-					const ofDay = events.filter((e) => {
-						const sY = ymd(parseIso(e.startAt));
-						const enY = ymd(parseIso(e.endAt));
-						return dy >= sY && dy <= enY;
-					});
-					const allDay = ofDay.filter((e) => e.allDay);
-					const timed = ofDay.filter((e) => !e.allDay).sort((a, b) => a.startAt < b.startAt ? -1 : a.startAt > b.startAt ? 1 : 0);
-					const dueTasks = tasks.filter((t) => t.dueDate === dy && t.status !== "done");
-					const count = allDay.length + timed.length + dueTasks.length;
-					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
-						ref: isToday ? todayRef : void 0,
-						children: [showMonth ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "sticky top-0 z-10 bg-secondary/95 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur",
-							children: [
-								day.getFullYear(),
-								"年",
-								day.getMonth() + 1,
-								"月"
-							]
-						}) : null, /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: cn("flex gap-3 px-3 py-2 transition-colors", dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"),
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex w-[4.5rem] shrink-0 flex-col items-center gap-1 pt-0.5 select-none",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: cn("text-[11px]", isToday ? "text-primary" : dayColor ?? "text-ink-3"),
-										children: weekdayLabel(day)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: cn("flex size-7 items-center justify-center rounded-full text-[14px] font-semibold tabular", isToday ? "bg-primary text-primary-foreground" : dayColor ?? "text-foreground"),
-										children: day.getDate()
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-										className: "flex w-full min-w-0 justify-center",
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShiftChip, {
-											shiftTypes,
-											currentId: shiftByDate(dy),
-											onSelect: (id) => onSetShift(dy, id),
-											onManage: onManageShifts
+			months.map(({ year, month, days: monthDays }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "relative",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "sticky top-0 z-10 bg-secondary/95 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur shadow-sm",
+					children: [
+						year,
+						"年",
+						month + 1,
+						"月"
+					]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+					className: "divide-y divide-border",
+					children: monthDays.map((day) => {
+						const dy = ymd(day);
+						const isToday = dy === todayYmd;
+						const dow = day.getDay();
+						const dayColor = dow === 0 || isHoliday(day) ? "text-crit" : dow === 6 ? "text-primary" : null;
+						const ofDay = events.filter((e) => {
+							const sY = ymd(parseIso(e.startAt));
+							const enY = ymd(parseIso(e.endAt));
+							return dy >= sY && dy <= enY;
+						});
+						const allDay = ofDay.filter((e) => e.allDay);
+						const timed = ofDay.filter((e) => !e.allDay).sort((a, b) => a.startAt < b.startAt ? -1 : a.startAt > b.startAt ? 1 : 0);
+						const dueTasks = tasks.filter((t) => t.dueDate === dy && t.status !== "done");
+						const count = allDay.length + timed.length + dueTasks.length;
+						return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", {
+							ref: isToday ? todayRef : void 0,
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: cn("flex gap-3 px-3 py-2 transition-colors", dy === highlightDate && "bg-warn-soft ring-2 ring-warn/50 ring-inset"),
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex w-[4.5rem] shrink-0 flex-col items-center gap-1 pt-0.5 select-none",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: cn("text-[11px]", isToday ? "text-primary" : dayColor ?? "text-ink-3"),
+											children: weekdayLabel(day)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: cn("flex size-7 items-center justify-center rounded-full text-[14px] font-semibold tabular", isToday ? "bg-primary text-primary-foreground" : dayColor ?? "text-foreground"),
+											children: day.getDate()
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "flex w-full min-w-0 justify-center",
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShiftChip, {
+												shiftTypes,
+												currentId: shiftByDate(dy),
+												onSelect: (id) => onSetShift(dy, id),
+												onManage: onManageShifts
+											})
 										})
-									})
-								]
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex min-w-0 flex-1 flex-col gap-1 py-0.5",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "flex items-center",
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-										type: "button",
-										onClick: () => onCreateOn(dy),
-										className: "ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent",
-										"aria-label": `${day.getMonth() + 1}/${day.getDate()} に予定を追加`,
-										title: "予定を追加",
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "size-4" })
-									})
-								}), count === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "py-0.5 text-[12px] text-ink-3",
-									children: "予定なし"
-								}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-									allDay.map((e) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-										type: "button",
-										onClick: () => onOpenEvent(e.id),
-										className: "flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent",
-										children: [
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "mt-0.5 size-3 shrink-0 text-muted-foreground/70" }),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular",
-												children: "終日"
-											}),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "min-w-0 flex-1 truncate pt-px text-[13px] font-medium",
-												children: e.title || "（無題）"
-											})
-										]
-									}, e.id)),
-									timed.map((e) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-										type: "button",
-										onClick: () => onOpenEvent(e.id),
-										className: "flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent",
-										children: [
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "mt-0.5 size-3 shrink-0 text-primary/70" }),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular",
-												children: timedLabel(e, dy)
-											}),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-												className: "min-w-0 flex-1",
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "block truncate text-[13px] font-medium",
-													children: e.title || "（無題）"
-												}), e.location ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "block truncate text-[11px] text-muted-foreground",
-													children: e.location
-												}) : null]
-											})
-										]
-									}, e.id)),
-									dueTasks.map((t) => {
-										const uc = urgencyClasses(dueUrgency(dy, todayYmd));
-										return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+									]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex min-w-0 flex-1 flex-col gap-1 py-0.5",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "flex items-center",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 											type: "button",
-											onClick: () => onOpenTask(t.id),
-											onPointerEnter: () => {
-												setHighlightId(t.id);
-												setHighlightDate(dy);
-											},
-											onPointerLeave: () => {
-												setHighlightId(null);
-												setHighlightDate(null);
-											},
-											className: cn("flex items-start gap-2 rounded-md border bg-card px-2 py-1 text-left hover:border-input", uc.bar),
+											onClick: () => onCreateOn(dy),
+											className: "ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent",
+											"aria-label": `${month + 1}/${day.getDate()} に予定を追加`,
+											title: "予定を追加",
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "size-4" })
+										})
+									}), count === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "py-0.5 text-[12px] text-ink-3",
+										children: "予定なし"
+									}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+										allDay.map((e) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "button",
+											onClick: () => onOpenEvent(e.id),
+											className: "flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent",
 											children: [
-												/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flag, { className: cn("mt-0.5 size-3 shrink-0", uc.text) }),
-												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-													className: cn("w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap tabular", uc.text),
-													children: ["締切", t.dueTime ? ` ${t.dueTime}` : ""]
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "mt-0.5 size-3 shrink-0 text-muted-foreground/70" }),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular",
+													children: "終日"
 												}),
 												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 													className: "min-w-0 flex-1 truncate pt-px text-[13px] font-medium",
-													children: t.title || "（無題）"
+													children: e.title || "（無題）"
 												})
 											]
-										}, t.id);
-									})
-								] })]
-							})]
-						})]
-					}, dy);
-				})
-			}),
+										}, e.id)),
+										timed.map((e) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+											type: "button",
+											onClick: () => onOpenEvent(e.id),
+											className: "flex items-start gap-2 rounded-md border border-transparent px-2 py-1 text-left hover:bg-accent",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "mt-0.5 size-3 shrink-0 text-primary/70" }),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular",
+													children: timedLabel(e, dy)
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+													className: "min-w-0 flex-1",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "block truncate text-[13px] font-medium",
+														children: e.title || "（無題）"
+													}), e.location ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "block truncate text-[11px] text-muted-foreground",
+														children: e.location
+													}) : null]
+												})
+											]
+										}, e.id)),
+										dueTasks.map((t) => {
+											const uc = urgencyClasses(dueUrgency(dy, todayYmd));
+											return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+												type: "button",
+												onClick: () => onOpenTask(t.id),
+												onPointerEnter: () => {
+													setHighlightId(t.id);
+													setHighlightDate(dy);
+												},
+												onPointerLeave: () => {
+													setHighlightId(null);
+													setHighlightDate(null);
+												},
+												className: cn("flex items-start gap-2 rounded-md border bg-card px-2 py-1 text-left hover:border-input", uc.bar),
+												children: [
+													/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flag, { className: cn("mt-0.5 size-3 shrink-0", uc.text) }),
+													/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: cn("w-[4.5rem] shrink-0 pt-px text-[11px] whitespace-nowrap tabular", uc.text),
+														children: ["締切", t.dueTime ? ` ${t.dueTime}` : ""]
+													}),
+													/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "min-w-0 flex-1 truncate pt-px text-[13px] font-medium",
+														children: t.title || "（無題）"
+													})
+												]
+											}, t.id);
+										})
+									] })]
+								})]
+							})
+						}, dy);
+					})
+				})]
+			}, `${year}-${month}`)),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				ref: bottomRef,
 				className: "h-1"
