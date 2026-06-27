@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { Layout, Plus, Settings } from "lucide-react";
+import { CalendarClock, Layout, Mic, Plus, Settings } from "lucide-react";
 import { useAppData } from "@/store/AppDataContext";
 import { useOverlay } from "@/store/OverlayContext";
 import type { Category } from "@/lib/types";
@@ -9,6 +9,9 @@ import { CATEGORY_PREFIX, useBoardOrder } from "@/features/board/BoardDndProvide
 import { CompleteZone } from "@/features/board/CompleteZone";
 import { Button } from "@/components/ui/button";
 import { CAT_UNCAT_VAR, resolveColor } from "@/lib/palette";
+import { parseTaskInput } from "@/lib/nlp/parseTask";
+import { formatDue } from "@/lib/date";
+import { createSpeechRecognizer, isSpeechSupported, type SpeechRecognizer } from "@/lib/speech";
 
 const UNCAT_KEY = "uncat";
 /** カテゴリ列の最小幅（px）。これを下回らない範囲で最大 MAX_COLS 列まで詰める。
@@ -31,6 +34,20 @@ export function Board() {
   const { openTaskDraft, openHistory, openCategory } = useOverlay();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [quick, setQuick] = useState("");
+  const [recording, setRecording] = useState(false);
+  const recognizerRef = useRef<SpeechRecognizer | null>(null);
+  const speechAvailable = isSpeechSupported();
+
+  // 入力中の即時解析（無料の内蔵ヒューリスティック）。カテゴリ・締切を自動抽出して
+  // 確定前にプレビュー表示する。本番ではここに Gemini 再解析を重ねて精度を上げる。
+  // （React Compiler が自動メモ化するため手動 useMemo は使わない＝既存コード方針）
+  const parsed = quick.trim() ? parseTaskInput(quick, categories) : null;
+  // プレビュー用にカテゴリの表示色（スロット）を解決する。
+  const parsedCatIndex = parsed?.categoryId
+    ? categories.findIndex((c) => c.id === parsed.categoryId)
+    : -1;
+  const parsedCatColor =
+    parsedCatIndex >= 0 ? resolveColor(categories[parsedCatIndex].color, parsedCatIndex) : null;
 
   // カテゴリ列のレスポンシブ列数（画面/枠幅に応じて 1〜3 列）。
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -50,11 +67,37 @@ export function Board() {
   }, []);
 
   const submitQuick = () => {
-    const title = quick.trim();
-    if (!title) return;
-    addTask({ title });
+    if (!quick.trim()) return;
+    // 解析結果（タイトル・カテゴリ・締切）をそのまま投入。未検出フィールドは null。
+    const p = parsed ?? parseTaskInput(quick, categories);
+    addTask({
+      title: p.title,
+      categoryId: p.categoryId,
+      dueDate: p.dueDate,
+      dueTime: p.dueTime,
+    });
     setQuick("");
   };
+
+  // 音声入力のトグル。Web Speech API で音声→テキスト化し、入力欄へ流す（確定で送信はしない）。
+  const toggleRecording = () => {
+    if (recording) {
+      recognizerRef.current?.stop();
+      return;
+    }
+    const rec = createSpeechRecognizer({
+      onResult: (text) => setQuick(text),
+      onEnd: () => setRecording(false),
+      onError: () => setRecording(false),
+    });
+    if (!rec) return;
+    recognizerRef.current = rec;
+    setRecording(true);
+    rec.start();
+  };
+
+  // アンマウント時に録音を確実に止める。
+  useEffect(() => () => recognizerRef.current?.stop(), []);
 
   const toggle = (key: string) =>
     setCollapsed((prev) => {
@@ -111,16 +154,30 @@ export function Board() {
           タスクボード
         </span>
 
-        {/* パッと追加（ヘッダーに常駐・Enter で未分類に即タスク化 §3.3.1） */}
+        {/* パッと追加（ヘッダーに常駐・Enter で即タスク化 §3.3.1）。
+            自然言語からカテゴリ・締切を自動抽出し、下のプレビュー帯に表示する。 */}
         <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-card px-2.5 focus-within:border-ring">
           <Plus className="size-3.5 shrink-0 text-ink-3" />
           <input
             value={quick}
             onChange={(e) => setQuick(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && submitQuick()}
-            placeholder="タスクをパッと追加（Enter）— 未分類へ"
+            placeholder="タスクをパッと追加（例: 〇〇への振込 25日まで）"
             className="min-w-0 flex-1 bg-transparent py-1.5 text-[13px] outline-none placeholder:text-ink-3"
           />
+          {speechAvailable && (
+            <button
+              type="button"
+              onClick={toggleRecording}
+              title={recording ? "音声入力を停止" : "音声で入力"}
+              aria-label={recording ? "音声入力を停止" : "音声で入力"}
+              className={`flex shrink-0 items-center justify-center rounded p-1 transition-colors ${
+                recording ? "text-crit" : "text-ink-3 hover:text-foreground"
+              }`}
+            >
+              <Mic className={`size-3.5 ${recording ? "animate-pulse" : ""}`} />
+            </button>
+          )}
         </div>
 
         <Button
@@ -146,6 +203,29 @@ export function Board() {
           カテゴリ
         </Button>
       </div>
+
+      {/* 自動判定プレビュー帯（入力中・検出時のみ）。Enter 前に結果を確認できる。 */}
+      {parsed && (parsed.categoryName || parsed.dueDate) && (
+        <div className="flex items-center gap-2 border-b border-border bg-secondary/40 px-4 py-1.5 text-[12px]">
+          <span className="shrink-0 text-ink-3">自動判定</span>
+          {parsed.categoryName && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2 py-0.5">
+              <span
+                className="size-2 rounded-full"
+                style={{ backgroundColor: parsedCatColor ?? CAT_UNCAT_VAR }}
+              />
+              {parsed.categoryName}
+            </span>
+          )}
+          {parsed.dueDate && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5">
+              <CalendarClock className="size-3 text-ink-3" />
+              {formatDue(parsed.dueDate, parsed.dueTime)}
+            </span>
+          )}
+          <span className="ml-auto shrink-0 text-ink-3">Enter で追加</span>
+        </div>
+      )}
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto pt-1 pb-2">
         {/* 未分類レーン（常に先頭・全幅・控えめ＝現状通り） */}

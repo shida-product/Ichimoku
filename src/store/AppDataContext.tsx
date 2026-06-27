@@ -318,7 +318,13 @@ interface AppDataContextValue {
   shifts: Shift[];
 
   // タスク（addTask は作成した id を返す＝下書きを即パネルで開くため）
-  addTask: (input: { title: string; categoryId?: string | null }) => string;
+  // dueDate/dueTime は自然言語入力（parseTaskInput）からの締切自動投入に使う。
+  addTask: (input: {
+    title: string;
+    categoryId?: string | null;
+    dueDate?: string | null;
+    dueTime?: string | null;
+  }) => string;
   updateTask: (id: string, patch: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   /** 完了＝即アーカイブ（status=done / completed_at・archived_at を立ててボードから外す）。 */
@@ -470,8 +476,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         links: [],
         status: "todo",
         position: keyBefore(cell.length ? cell[0].position : null),
-        dueDate: null,
-        dueTime: null,
+        dueDate: input.dueDate ?? null,
+        dueTime: input.dueTime ?? null,
         completedAt: null,
         archivedAt: null,
         createdAt: ts,
