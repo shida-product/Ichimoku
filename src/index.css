@@ -54,6 +54,8 @@
   --crit-soft: #fce8e6;
   --warn: #f9ab00; /* 締切 7日以内＝黄橙（赤との差を明確にするため明るく） */
   --warn-soft: #fef0c8;
+  --ok: #1e8e3e; /* 空き日・余裕＝緑（ポジティブな状態シグナル） */
+  --ok-soft: #e6f4ea;
 
   /* 分類色（カテゴリ・勤務地のパレットスロット）。解決ロジックは src/lib/palette.ts。 */
   --cat-1: #039be5; /* 青 */
@@ -103,6 +105,8 @@
   --color-crit-soft: var(--crit-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);

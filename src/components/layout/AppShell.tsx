@@ -8,6 +8,7 @@ import { Board } from "@/features/board/Board";
 import { BoardDndProvider } from "@/features/board/BoardDndProvider";
 import { HighlightProvider } from "@/features/board/HighlightContext";
 import { Calendar } from "@/features/calendar/Calendar";
+import { FreeDaysPanel } from "@/features/calendar/FreeDaysPanel";
 import { DeadlineRail } from "@/features/deadlines/DeadlineRail";
 import { TaskDetailPanel } from "@/features/tasks/TaskDetailPanel";
 import { CompletedHistory } from "@/features/tasks/CompletedHistory";
@@ -87,13 +88,18 @@ export function AppShell() {
           カレンダーは快適幅で上限固定し、余った横幅はボードへ（列が増える）。 */}
       <HighlightProvider>
         <BoardDndProvider>
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 px-[22px] pt-2 pb-4 lg:grid-cols-[minmax(220px,260px)_1fr_minmax(340px,460px)]">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 px-[22px] pt-2 pb-3 lg:grid-cols-[minmax(220px,260px)_1fr_minmax(340px,460px)]">
             <DeadlineRail />
             <Board />
             <Calendar />
           </div>
         </BoardDndProvider>
       </HighlightProvider>
+
+      {/* 画面下段：空いている日（アポ調整用）。予定ゼロの日を緑チップで提示。 */}
+      <div className="px-[22px] pb-4">
+        <FreeDaysPanel />
+      </div>
 
       {/* side-peek（1 枚） */}
       <SidePeek
