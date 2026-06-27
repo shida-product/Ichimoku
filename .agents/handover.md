@@ -23,9 +23,9 @@
 
 経営者向けに「テキスト/音声でタスクを入れたら、カテゴリと締切が自動で入る」製品化を開始。
 **方針確定**: 全機能を段階実装／**プレビュー先行**（実DB・本番API接続は基盤が整い次第）。
-時間軸タブは「別軸レンズ（締切から自動分類＋いつかバケツ）」推奨で合意待ち（カレンダー下段と共に次フェーズ）。
+時間軸タブは「**別軸レンズ**（締切から自動分類＋いつかバケツ）」で**合意・実装済み**。
 
-完了（タブ非依存の土台）:
+完了:
 
 | 内容 | ファイル | 状態 |
 | ---- | -------- | ---- |
@@ -34,10 +34,15 @@
 | 音声入力ラッパー（Web Speech API・無料・キー不要） | `src/lib/speech.ts` | ✅ |
 | クイック追加に解析プレビュー帯＋マイクボタン | `src/features/board/Board.tsx` | ✅ |
 | `addTask` を dueDate/dueTime 受け入れに拡張 | `src/store/AppDataContext.tsx` | ✅ |
+| 時間軸タブ（別軸レンズ）= 締切から累積分類して絞り込み | `src/lib/timeHorizon.ts`, `Board.tsx` | ✅ |
+| 下段カレンダー＝空いている日（予定ゼロ日）をチップ表示・クリックで予定追加 | `src/lib/freeDays.ts`, `src/features/calendar/FreeDaysPanel.tsx`, `AppShell.tsx` | ✅ |
+| `--ok`/`--ok-soft` トークン追加（空き=緑のポジティブ状態） | `src/index.css` | ✅ |
 
 - **本番化の差し替え点は `parseTaskInput` 1 箇所のみ**：入力中は内蔵ヒューリスティックで即時プレビュー、確定時に Edge Function 経由 Gemini で再解析する設計。
-- 検証: lint 0 error / build 成功 / パーサをユーザー入力例で実行確認（基準日 `APP_TODAY`）。
-- 残: 時間軸タブ、画面下段カレンダー＋空き日表示、本番（Edge Function＋Gemini＋Google OAuth）接続。
+- 時間軸タブ = 累積しきい値（今日≤今日/今月≤月末/半年≤183日/いつか=締切なし/すべて）。「移動」は締切付け替えで自然に成立（ドラッグ移動は今後）。
+- 空き日 = **予定（EventItem）のみ**で判定（タスク締切は枠を埋めない）。本番は Google Calendar の予定/freeBusy に差し替えるだけ。
+- 検証: lint 0 error / build 成功 / パーサ・時間軸・空き日を node 実行で挙動確認（基準日 `APP_TODAY`）。
+- 残: ドラッグでタブへ移動（締切付け替え）、本番（Edge Function＋Gemini＋Google OAuth＋freeBusy）接続。
 - 費用感（調査済み）: Gemini Flash-Lite は月額固定費なし・従量で個人利用なら実質無料〜月数十円。Google Calendar API は無料。キー保護に Edge Function が必須。
 
 ### ⚠ 最重要：実 DB 未適用（2026-06-21 現在）
