@@ -42,17 +42,33 @@ function addDays(base: Date, n: number): Date {
   return d;
 }
 
-/** base 年で month(1-12)/day の Date を作る。過ぎていれば翌年に送る。 */
+/** その月の日数（28〜31）。 */
+function daysInMonth(year: number, month0: number): number {
+  return new Date(year, month0 + 1, 0).getDate();
+}
+
+/**
+ * 月の日数を超える day を月末へクランプして Date を作る（JS の月送りロールオーバー防止）。
+ * 例: 6月（30日まで）に day=31 を渡しても 7/1 ではなく 6/30 になる。
+ * 日付がその月に存在しない指定（31日・2月30日 等）は「月末まで」と解釈する。
+ */
+function makeClampedDate(year: number, month0: number, day: number): Date {
+  const clamped = Math.min(Math.max(day, 1), daysInMonth(year, month0));
+  return new Date(year, month0, clamped);
+}
+
+/** base 年で month(1-12)/day の Date を作る（月末クランプ）。過ぎていれば翌年に送る。 */
 function dateInYear(base: Date, month1: number, day: number): Date {
-  let d = new Date(base.getFullYear(), month1 - 1, day);
-  if (d.getTime() < base.getTime()) d = new Date(base.getFullYear() + 1, month1 - 1, day);
+  let d = makeClampedDate(base.getFullYear(), month1 - 1, day);
+  if (d.getTime() < base.getTime()) d = makeClampedDate(base.getFullYear() + 1, month1 - 1, day);
   return d;
 }
 
-/** 「N日」: 当月の day。今日より前なら翌月。 */
+/** 「N日」: 当月の day（月末クランプ）。今日より前なら翌月。 */
 function dayOfMonth(base: Date, day: number): Date {
-  let d = new Date(base.getFullYear(), base.getMonth(), day);
-  if (d.getTime() < base.getTime()) d = new Date(base.getFullYear(), base.getMonth() + 1, day);
+  let d = makeClampedDate(base.getFullYear(), base.getMonth(), day);
+  if (d.getTime() < base.getTime())
+    d = makeClampedDate(base.getFullYear(), base.getMonth() + 1, day);
   return d;
 }
 
@@ -117,15 +133,15 @@ function matchDate(s: string, base: Date): { date: string; range: [number, numbe
     if (m) return { date: ymd(addDays(base, days)), range: [m.index, m.index + m[0].length] };
   }
 
-  // 2) 来月D日 / 来月
+  // 2) 来月D日 / 来月（いずれも月末クランプ。例: 1/31 の「来月」→ 2/末）
   let m = new RegExp(`来月\\s*(\\d{1,2})\\s*日${suffix}`).exec(s);
   if (m) {
-    const d = new Date(base.getFullYear(), base.getMonth() + 1, Number(m[1]));
+    const d = makeClampedDate(base.getFullYear(), base.getMonth() + 1, Number(m[1]));
     return { date: ymd(d), range: [m.index, m.index + m[0].length] };
   }
   m = new RegExp(`来月${suffix}`).exec(s);
   if (m) {
-    const d = new Date(base.getFullYear(), base.getMonth() + 1, base.getDate());
+    const d = makeClampedDate(base.getFullYear(), base.getMonth() + 1, base.getDate());
     return { date: ymd(d), range: [m.index, m.index + m[0].length] };
   }
 
