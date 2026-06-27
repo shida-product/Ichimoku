@@ -19,6 +19,27 @@
 
 ## Current Focus
 
+### 🆕 製品化機能：自然言語タスク入力（Phase 1 土台・2026-06-27）
+
+経営者向けに「テキスト/音声でタスクを入れたら、カテゴリと締切が自動で入る」製品化を開始。
+**方針確定**: 全機能を段階実装／**プレビュー先行**（実DB・本番API接続は基盤が整い次第）。
+時間軸タブは「別軸レンズ（締切から自動分類＋いつかバケツ）」推奨で合意待ち（カレンダー下段と共に次フェーズ）。
+
+完了（タブ非依存の土台）:
+
+| 内容 | ファイル | 状態 |
+| ---- | -------- | ---- |
+| 日本語の締切抽出（明日/25日まで/午後3時/来週金曜 等） | `src/lib/nlp/jaDateTime.ts` | ✅ |
+| カテゴリ自動判定＋統合パーサ（差し替え可能IF `parseTaskInput`） | `src/lib/nlp/parseTask.ts` | ✅ |
+| 音声入力ラッパー（Web Speech API・無料・キー不要） | `src/lib/speech.ts` | ✅ |
+| クイック追加に解析プレビュー帯＋マイクボタン | `src/features/board/Board.tsx` | ✅ |
+| `addTask` を dueDate/dueTime 受け入れに拡張 | `src/store/AppDataContext.tsx` | ✅ |
+
+- **本番化の差し替え点は `parseTaskInput` 1 箇所のみ**：入力中は内蔵ヒューリスティックで即時プレビュー、確定時に Edge Function 経由 Gemini で再解析する設計。
+- 検証: lint 0 error / build 成功 / パーサをユーザー入力例で実行確認（基準日 `APP_TODAY`）。
+- 残: 時間軸タブ、画面下段カレンダー＋空き日表示、本番（Edge Function＋Gemini＋Google OAuth）接続。
+- 費用感（調査済み）: Gemini Flash-Lite は月額固定費なし・従量で個人利用なら実質無料〜月数十円。Google Calendar API は無料。キー保護に Edge Function が必須。
+
 ### ⚠ 最重要：実 DB 未適用（2026-06-21 現在）
 
 コードは全機能実装済みだが、**Supabase には一切適用していない**。ローカルは `npm run dev` のプレビューモック（`IS_PREVIEW`）で動作確認中（現在 `http://localhost:5175/Ichimoku/` でサーバー起動中）。

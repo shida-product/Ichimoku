@@ -94,6 +94,18 @@
 
 ---
 
+### 2026-06-27 [React Compiler][ESLint] 手動 useMemo は不要・全角空白の正規表現リテラルは禁止
+
+- **❌ Anti-pattern:**
+  ① 派生値を素朴に `useMemo` で包む。このリポジトリは React Compiler が有効で、ESLint `react-hooks/preserve-manual-memoization` が「Could not preserve existing manual memoization」エラーを出す（特に `parsed?.x` でガードして本体で `parsed.x` を読む形）。
+  ② 文字列整形の正規表現に**全角スペース（U+3000）をリテラルで**書く（`/[\u3000\s]+/`）。ESLint `no-irregular-whitespace` でビルド前に弾かれる。
+
+- **✅ Solution / Rule:**
+  ① 既存コード方針どおり**手動 `useMemo` を使わず素の const で計算**する（Board.tsx の `orderedCats` / `columns` 等が前例）。コンパイラが自動メモ化する。
+  ② 正規表現中の全角空白は**ユニコードエスケープ `\u3000`** で書く（`/[\u3000\s]+/`）。エディタやツール経由だと全角リテラルとエスケープの差し替えが効かないことがあるので、最初からエスケープで書く。
+
+---
+
 ### 2026-06-16 [React Query][UX] 楽観ロールバックがドラフトを消し「追加パネルが白紙」になる
 
 - **❌ Anti-pattern:**
